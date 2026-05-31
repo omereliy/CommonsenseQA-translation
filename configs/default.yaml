@@ -1,0 +1,42 @@
+# Default run config. Runs are config-driven — don't hardcode these in modules.
+# Copy this file per experiment (e.g. configs/hebrew_gpt4o.yaml) and override.
+
+seed: 42
+
+dataset:
+  name: tau/commonsense_qa
+  split: validation          # test answer keys are withheld; we score on validation
+  # limit: null              # set an int for quick smoke runs
+
+languages:
+  source: en
+  # Target language set is a PENDING decision (see CLAUDE.md). Placeholder:
+  targets: [he, ar, es]      # Hebrew, Arabic, Spanish (or fr)
+
+conditions:                  # which Q-A variants to build/evaluate
+  - en-en                    # baseline
+  - en-x
+  - x-x
+  - x-en
+  # - mixed                  # mixed-language answer set (extension)
+  # - noun                   # partial question-noun translation (extension)
+
+translation:
+  backend: TODO              # 'mt' (e.g. nllb) | 'llm' — PENDING decision (CLAUDE.md)
+  model: TODO
+  cache: true                # cache translations to data/translated/
+
+eval:
+  backend: TODO              # 'hf' (open multilingual) | 'api' — PENDING decision
+  model: TODO                # e.g. an HF model id or an API model name
+  answer_format: letter      # letter-based (A-E) selection — NOT answer text
+  decoding:
+    temperature: 0           # deterministic; do not change for scored runs
+    max_tokens: 16
+  prompt_template: TODO      # path/name once the template is agreed
+
+paths:
+  data_raw: data/raw
+  data_translated: data/translated
+  data_variants: data/variants
+  results: results

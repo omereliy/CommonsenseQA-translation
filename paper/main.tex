@@ -1,0 +1,64 @@
+% =====================================================================
+%  Do LLMs Choose Concepts or English Words?
+%  Answer-Side Translation in CommonsenseQA
+%
+%  ACL-style report. Expects acl.sty + acl_natbib.bst in this directory
+%  (from https://github.com/acl-org/acl-style-files), OR build the Overleaf
+%  project from the official ACL template and drop in sections/ + references.bib.
+%
+%  No acl.sty yet? To draft content with plain article instead, comment out the
+%  two ACL lines below and uncomment the \documentclass{article} block.
+% =====================================================================
+
+\documentclass[11pt]{article}
+\usepackage{acl}                 % ACL style. (Use [review] for line numbers while drafting.)
+
+% --- Plain-article fallback (uncomment this block, comment the two lines above) ---
+% \documentclass[11pt]{article}
+% \usepackage[margin=1in]{geometry}
+% ---------------------------------------------------------------------------------
+
+\usepackage{times}
+\usepackage{latexsym}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath}
+\usepackage{multirow}
+
+% Multilingual answer choices (Hebrew / Arabic) appear as examples. For real RTL
+% rendering, compile with XeLaTeX/LuaLaTeX and load polyglossia/fontspec; for a
+% pdfLaTeX draft, screenshots or transliterations are fine. See sections/methods.tex.
+
+\title{Do LLMs Choose Concepts or English Words? \\
+       Answer-Side Translation in CommonsenseQA}
+
+\author{Tal Malul \and Omer Eliyahu \and Mark Feldman \and Daniel Koyfman \\
+        Ben-Gurion University of the Negev \\
+        Computational Semantics and Natural Language Understanding, 2025--2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+% TODO: ~150 words. Problem (concept vs. English wording), method (answer-side-only
+% translation, EN-EN / EN-X / X-X / X-EN conditions + flip-rate diagnostic),
+% headline result, takeaway.
+\end{abstract}
+
+\input{sections/introduction}
+\input{sections/related_work}
+\input{sections/methods}
+\input{sections/experiments}
+\input{sections/conclusion}
+
+% --- References ---
+\bibliography{references}
+\bibliographystyle{acl_natbib}
+
+\appendix
+\input{sections/appendix}
+
+\end{document}

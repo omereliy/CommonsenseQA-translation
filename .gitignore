@@ -1,0 +1,52 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+.python-version
+
+# --- Environment / secrets ---
+.env
+*.local
+
+# --- Experiment payloads (derived; reproduce from config + code) ---
+data/raw/**
+data/translated/**
+data/variants/**
+results/**
+# keep the directory skeletons and any small committed fixtures
+!data/raw/.gitkeep
+!data/translated/.gitkeep
+!data/variants/.gitkeep
+!results/.gitkeep
+!**/README.md
+
+# --- Notebooks ---
+.ipynb_checkpoints/
+
+# --- LaTeX build artifacts ---
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.log
+paper/*.out
+paper/*.toc
+paper/*.synctex.gz
+paper/*.fdb_latexmk
+paper/*.fls
+paper/main.pdf
+paper/sections/*.aux
+
+# --- OS / editor ---
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# --- Claude Code local settings ---
+.claude/settings.local.json

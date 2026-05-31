@@ -1,0 +1,27 @@
+# Core
+datasets>=2.18           # CommonsenseQA loading (tau/commonsense_qa)
+pandas>=2.0
+numpy>=1.24
+pyyaml>=6.0              # config loading
+tqdm>=4.66
+
+# Stats / plotting (analysis)
+scipy>=1.11             # significance tests (e.g. McNemar via statsmodels or scipy)
+statsmodels>=0.14
+matplotlib>=3.7
+
+# --- Optional / pluggable backends (uncomment what the team actually uses) ---
+# Translation and/or evaluation with open multilingual models:
+# torch>=2.2
+# transformers>=4.40
+# sentencepiece>=0.2          # needed by many multilingual tokenizers (NLLB, XLM-R)
+# sacremoses
+
+# API-based models (translation and/or evaluation):
+# openai>=1.0
+# anthropic>=0.40
+# python-dotenv>=1.0          # load API keys from .env
+
+# Dev
+pytest>=8.0
+ruff>=0.4

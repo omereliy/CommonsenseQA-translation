@@ -1,0 +1,46 @@
+\section{Methods}
+\label{sec:methods}
+
+% Present the solution and the EXPECTATIONS you have from it (course writing recs).
+
+\subsection{Data}
+% CommonsenseQA. State explicitly: evaluation uses the VALIDATION split (~1,221
+% items) because test-set answer keys are withheld for the leaderboard.
+
+\subsection{Answer-side translation}
+% How answer choices are translated; backend (MT vs LLM — see CLAUDE.md decisions);
+% how meaning preservation is checked (optional human validation on a subset).
+
+\subsection{Conditions}
+\label{sec:conditions}
+% Define the Q-A language conditions and the two extensions.
+% \begin{table}[t]
+%   \centering
+%   \begin{tabular}{lll}
+%     \toprule
+%     Condition & Question & Answers \\
+%     \midrule
+%     EN-EN & English & English (baseline) \\
+%     EN-X  & English & X \\
+%     X-X   & X       & X \\
+%     X-EN  & X       & English \\
+%     \bottomrule
+%   \end{tabular}
+%   \caption{Q--A language conditions. X is a target language (Hebrew, Arabic,
+%            Spanish/French). Extensions: mixed answer sets; partial question-noun
+%            translation.}
+%   \label{tab:conditions}
+% \end{table}
+
+\subsection{Models and prompting}
+% Evaluated model(s); zero/few-shot; the prompt template. State the answer-selection
+% convention: the model emits a CHOICE LETTER (A--E), never the answer text, so that
+% scoring is language-invariant and flips are not a string-matching artifact.
+
+\subsection{Metrics}
+% Accuracy per condition; flip rate between condition pairs (the core diagnostic);
+% statistical significance (e.g. McNemar for paired accuracy on the same items).
+
+\subsection{Reproducibility}
+% temperature=0, fixed seed, cached raw outputs, per-run manifest (model id+snapshot,
+% prompt-template hash, variant hash, decoding params). Point to src/ + configs/.
