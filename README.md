@@ -98,6 +98,8 @@ setup (start from the official ACL template, drop in `paper/sections/` +
 
 ## Source documents
 
-The proposal and course guidelines (`Do LLMs Choose Concepts or English Words.pdf`,
-`Project_assignment_submission_guidelines.pdf`,
-`Project_writing_recommendations.pdf`) live at the repository root for reference.
+The proposal and course guidelines live in [`documents/`](documents/):
+
+- `Project_proposal.pdf` — the project proposal.
+- `Project_assignment_submission_guidelines.pdf` — course assignment guidelines.
+- `Project_writing_recommendations.pdf` — report writing recommendations.
