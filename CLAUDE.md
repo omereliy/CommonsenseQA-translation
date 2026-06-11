@@ -38,8 +38,11 @@ changing the answer language.
 Plus two extensions: **mixed answer sets** (some choices in X₁, some in X₂) and
 **partial question-noun translation** (translate select nouns in the question).
 
-`X` ∈ candidate target languages: Hebrew, Arabic, and one high-resource language
-(Spanish or French). *(Final set is a pending decision — see below.)*
+`X` ∈ **{Russian, Spanish, Hebrew}** (`ru`, `es`, `he`); English is the baseline.
+Arabic from the initial proposal was dropped. We implement the **`en-en` / `en-x`
+core** (English question, choices in X) first; `x-x` / `x-en` are wired but gated
+behind `extensions.translate_questions` (they also translate the question), and
+`mixed` / `noun` remain extension stubs.
 
 ## Load-bearing conventions (do not silently change these)
 
@@ -113,19 +116,34 @@ significance)`.
 - **Report:** 6 pages, 11pt, ACL-style. Cite **conference/journal** versions (not
   arXiv) and verify entries against the ACL Anthology.
 
-## Decisions pending (resolve deliberately as a team — don't inherit a stub default)
+## Decisions (resolved — reflected in `configs/default.yaml` + the package)
 
-- [ ] **Target languages** — confirm the X set (Hebrew + Arabic + Spanish *or*
-      French?).
-- [ ] **Translation backend** — MT (e.g. NLLB / Google / DeepL) vs LLM-based
-      translation. Affects quality, cost, and whether human validation is needed.
-      The `translation/` module is pluggable so this isn't locked yet.
-- [ ] **Evaluation target(s)** — API LLMs (OpenAI/Anthropic) vs open multilingual
-      HF models (e.g. XLM-R / Aya / Qwen). The `eval/` module is pluggable.
-- [ ] **Human validation** — whether/which subset to human-check for
-      meaning-preserving translations.
-- [ ] **Prompt format** — exact template; how choices are listed; few-shot vs
-      zero-shot.
+- [x] **Target languages** — English baseline + **Russian, Spanish, Hebrew**
+      (`ru`, `es`, `he`). Arabic dropped.
+- [x] **Translation backend** — **Google Cloud Translation** (v2 REST, API key in
+      `GOOGLE_API_KEY`), choices only, cached under `data/translated/_cache/`.
+      Still pluggable behind the `Translator` protocol in `translation/`.
+- [x] **Evaluation target(s)** — **three arms**: (1) generative **Qwen lineup**
+      (`Qwen3.5` 0.8/4/9B, `qwen3.6:35b`, `gemma4:26b-a4b`) served by **vLLM on
+      BGU**, zero-shot, `think {off,on}`; (2) **`xlm-roberta-base`** fine-tuned on
+      English CSQA → cross-lingual transfer; (3) **ESIM** as a pre-transformer,
+      **English-only** anchor (GloVe vocab can't read ru/he). Report the en→he
+      *degradation pattern*, not absolute accuracy across arms (XLM-R is
+      fine-tuned, the Qwens zero-shot).
+- [ ] **Human validation** — small Hebrew spot-check still recommended (short
+      ConceptNet phrases are where MT slips). Open team task.
+- [x] **Prompt format** — **zero-shot**, English instruction held constant, Latin
+      `A–E` labels, choices listed one per line; model emits the **letter**. See
+      `eval/prompt.py` (`PROMPT_TEMPLATE`, hashed into each manifest).
+
+## Implementation map
+
+`scripts/{translate,build_variants,run_eval,analyze}.py` (config-driven) drive the
+`csqa_xlang` modules: `translation/` (Google) → `variants/` (build + fingerprint)
+→ `eval/` (generative vLLM backend + `xlmr` + `esim`, writing `outputs.jsonl` +
+manifest) → `analysis/` (accuracy + Wilson + **flip rate + McNemar**). The
+generative arm runs on the cluster via `cluster/{submit,serve_and_eval.sbatch,defaults.sh}`
+(serving layer reused from the sibling `pddl-copilot-experiments` harness).
 
 ## Grading rubric (keep these in mind while building)
 

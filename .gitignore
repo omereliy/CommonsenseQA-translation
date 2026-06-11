@@ -19,6 +19,9 @@ data/raw/**
 data/translated/**
 data/variants/**
 results/**
+checkpoints/**          # fine-tuned XLM-R / ESIM weights (derived)
+cluster/logs/**         # SLURM job logs
+*.sif                   # apptainer images
 # keep the directory skeletons and any small committed fixtures
 !data/raw/.gitkeep
 !data/translated/.gitkeep

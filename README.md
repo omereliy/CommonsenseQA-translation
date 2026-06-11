@@ -9,11 +9,12 @@ Course project — Computational Semantics and Natural Language Understanding,
 ## What this is
 
 CommonsenseQA was designed in English. We keep the **questions in English** and
-translate **only the answer choices** into other languages (Hebrew, Arabic, and a
-high-resource language) to test whether models pick the right commonsense
-**concept** or lean on English **wording**. We compare Q–A language conditions
-(`EN-EN`, `EN-X`, `X-X`, `X-EN`) and measure prediction **flips** caused solely by
-changing the answer language.
+translate **only the answer choices** into other languages (**Russian, Spanish,
+Hebrew**) to test whether models pick the right commonsense **concept** or lean on
+English **wording**. We compare Q–A language conditions (`EN-EN`, `EN-X`, with
+`X-X`/`X-EN` as wired extensions) and measure prediction **flips** caused solely by
+changing the answer language. Three model arms: the zero-shot **Qwen** lineup
+(vLLM), a fine-tuned **XLM-R** encoder, and an **ESIM** historical anchor.
 
 > Read [`CLAUDE.md`](CLAUDE.md) first — it defines the load-bearing conventions
 > (validation split, letter-based answers, deterministic decoding + manifests).
@@ -27,7 +28,8 @@ changing the answer language.
 ├── src/csqa_xlang/     # the experiment package: config · manifest · data ·
 │                       #   translation · variants · eval · analysis
 ├── configs/            # YAML run configs (seed, temperature, languages, paths)
-├── scripts/            # thin CLI entry points
+├── scripts/            # thin CLI entry points (translate · build_variants · run_eval · analyze)
+├── cluster/            # BGU SLURM: serve vLLM per (model, think) cell + submit
 ├── data/               # raw · translated · variants   (git-ignored payloads)
 ├── results/            # run outputs + manifests        (git-ignored payloads)
 ├── tests/
@@ -66,19 +68,37 @@ If `datasets` (3.x dropped script-based loaders) complains, you may need a speci
 revision or `trust_remote_code=True` — fix it in `src/csqa_xlang/data/loader.py` and
 note what worked.
 
-## Pipeline (intended)
+## Pipeline
 
 ```
 load CSQA (validation)
-   └─> translate answer choices (+ optional question nouns)
-        └─> build condition variants (EN-EN / EN-X / X-X / X-EN / mixed / noun)
-             └─> evaluate model(s)        # temperature=0, seeded, raw outputs cached
-                  └─> analyze             # accuracy, flips, significance, plots
+   └─> translate answer choices (Google)         scripts/translate.py
+        └─> build condition variants (en-en/en-x) scripts/build_variants.py
+             └─> evaluate arm(s)                   scripts/run_eval.py   (temperature=0, cached + manifest)
+                  └─> analyze (acc, flips, McNemar) scripts/analyze.py
 ```
 
-Runs are config-driven: `python -m scripts.<entrypoint> --config configs/default.yaml`
-(entry points are TBD — see [`scripts/README.md`](scripts/README.md)). Don't hardcode
-models, languages, or paths in modules; put them in the config.
+All stages are config-driven (edit `configs/default.yaml`; don't hardcode models,
+languages, or paths in modules):
+
+```bash
+export GOOGLE_API_KEY=...                                   # Cloud Translation key
+python -m scripts.translate       --config configs/default.yaml
+python -m scripts.build_variants  --config configs/default.yaml
+
+# Generative Qwen arm — on BGU (serves vLLM per (model, think) cell):
+bash cluster/submit.sh --limit 50 Qwen3.5:4B               # smoke first
+bash cluster/submit.sh                                     # full: all models x {off,on}
+
+# Encoder arms — any single GPU:
+python -m scripts.run_eval --arm xlmr  --config configs/default.yaml   # after: python -c "from csqa_xlang.eval import xlmr; xlmr.train('checkpoints/xlmr-csqa')"
+python -m scripts.run_eval --arm esim  --config configs/default.yaml   # after esim.train('checkpoints/esim-csqa.pt')
+
+python -m scripts.analyze         --config configs/default.yaml
+```
+
+Each completed `(model, variant)` run is a cache hit (skipped unless `--force`),
+and writes `outputs.jsonl` + a reproducibility `manifest.json`.
 
 ## Reproducibility (graded — 15 pts)
 

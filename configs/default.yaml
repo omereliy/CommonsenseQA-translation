@@ -1,5 +1,9 @@
 # Default run config. Runs are config-driven — don't hardcode these in modules.
-# Copy this file per experiment (e.g. configs/hebrew_gpt4o.yaml) and override.
+# Copy per experiment (e.g. configs/qwen9b.yaml) and override.
+#
+# Resolved decisions (was "pending" — see CLAUDE.md): languages en+ru/es/he,
+# Google translation of choices, three eval arms (Qwen-vLLM / XLM-R / ESIM),
+# letter answers, deterministic decoding, flip-rate + McNemar analysis.
 
 seed: 42
 
@@ -10,30 +14,43 @@ dataset:
 
 languages:
   source: en
-  # Target language set is a PENDING decision (see CLAUDE.md). Placeholder:
-  targets: [he, ar, es]      # Hebrew, Arabic, Spanish (or fr)
+  targets: [ru, es, he]      # Russian, Spanish, Hebrew. English is the baseline.
+                             # (Arabic from the initial proposal was dropped.)
 
 conditions:                  # which Q-A variants to build/evaluate
-  - en-en                    # baseline
-  - en-x
-  - x-x
-  - x-en
-  # - mixed                  # mixed-language answer set (extension)
-  # - noun                   # partial question-noun translation (extension)
+  - en-en                    # baseline: English question, English choices
+  - en-x                     # English question, choices in X  (the core probe)
+  # - x-x                    # extension: translate the question too (needs flag below)
+  # - x-en                   # extension: translated question, English choices
+
+extensions:
+  translate_questions: false # set true (and add x-x/x-en above) to translate questions
 
 translation:
-  backend: TODO              # 'mt' (e.g. nllb) | 'llm' — PENDING decision (CLAUDE.md)
-  model: TODO
-  cache: true                # cache translations to data/translated/
+  backend: google            # Google Cloud Translation v2 REST (auth: GOOGLE_API_KEY)
+  cache: true                # cached under data/translated/_cache/
 
 eval:
-  backend: TODO              # 'hf' (open multilingual) | 'api' — PENDING decision
-  model: TODO                # e.g. an HF model id or an API model name
-  answer_format: letter      # letter-based (A-E) selection — NOT answer text
+  answer_format: letter      # letter-based (A-E) selection — NOT answer text (load-bearing)
+  think_modes: [off, on]     # generative arm only; gemma4 has no <think> (on == off)
   decoding:
     temperature: 0           # deterministic; do not change for scored runs
-    max_tokens: 16
-  prompt_template: TODO      # path/name once the template is agreed
+    max_tokens_think_off: 32
+    max_tokens_think_on: 8192
+  generative:                # zero-shot, vLLM-served on BGU. Mirror cluster/defaults.sh.
+    backend: vllm
+    models:
+      - {tag: "Qwen3.5:0.8B",   hf: "Qwen/Qwen3.5-0.8B"}
+      - {tag: "Qwen3.5:4B",     hf: "Qwen/Qwen3.5-4B"}
+      - {tag: "Qwen3.5:9B",     hf: "Qwen/Qwen3.5-9B"}
+      - {tag: "qwen3.6:35b",    hf: "cyankiwi/Qwen3.6-35B-A3B-AWQ-4bit"}
+      - {tag: "gemma4:26b-a4b", hf: "cyankiwi/gemma-4-26B-A4B-it-AWQ-4bit"}
+  encoder:                   # fine-tuned multilingual baseline (cross-lingual transfer)
+    model: xlm-roberta-base
+    ckpt: checkpoints/xlmr-csqa
+  anchor:                    # pre-transformer BiLSTM; English-condition only
+    model: esim
+    ckpt: checkpoints/esim-csqa.pt
 
 paths:
   data_raw: data/raw
