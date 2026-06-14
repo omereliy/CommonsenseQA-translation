@@ -18,7 +18,9 @@ import os
 from pathlib import Path
 
 from csqa_xlang.config import load_config
-from csqa_xlang.eval import PROMPT_TEMPLATE, esim, is_cached, run_generative, write_run, xlmr
+from csqa_xlang.eval import PROMPT_TEMPLATE, is_cached, run_generative, write_run
+# esim / xlmr (torch) are imported lazily inside their arm branches so the
+# generative arm stays torch-free.
 from csqa_xlang.variants import load_variant
 
 
@@ -92,6 +94,7 @@ def main() -> None:
                           f"acc={acc:.3f} (n={len(preds)})", flush=True)
 
     elif args.arm == "xlmr":
+        from csqa_xlang.eval import xlmr
         ckpt = args.ckpt or "checkpoints/xlmr-csqa"
         for v in variants:
             from csqa_xlang.variants import Variant
@@ -104,6 +107,7 @@ def main() -> None:
                   f"acc={sum(p.correct for p in preds) / max(len(preds), 1):.3f}", flush=True)
 
     elif args.arm == "esim":
+        from csqa_xlang.eval import esim
         ckpt = args.ckpt or "checkpoints/esim-csqa.pt"
         for v in variants:
             if v.condition != "en-en":

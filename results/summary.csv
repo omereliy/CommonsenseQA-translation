@@ -1,0 +1,9 @@
+model,think,condition,lang,n,accuracy,ci_low,ci_high,unparsed
+Qwen3.5:0.8B,off,en-en,en,1221,0.5168,0.4888,0.5447,0
+Qwen3.5:0.8B,off,en-x,es,1221,0.4242,0.3968,0.4522,0
+Qwen3.5:0.8B,off,en-x,he,1221,0.3923,0.3653,0.42,0
+Qwen3.5:0.8B,off,en-x,ru,1221,0.4758,0.4479,0.5039,0
+Qwen3.5:4B,off,en-en,en,1221,0.7658,0.7412,0.7887,0
+Qwen3.5:4B,off,en-x,es,1221,0.6863,0.6597,0.7117,0
+Qwen3.5:4B,off,en-x,he,1221,0.6912,0.6648,0.7165,0
+Qwen3.5:4B,off,en-x,ru,1221,0.697,0.6706,0.7221,0
