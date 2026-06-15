@@ -48,8 +48,12 @@ VLLM_IMAGE="${VLLM_IMAGE:-docker://vllm/vllm-openai:v0.20.2}"; SIF="$WORK/vllm.s
 if [ -f "$HOME/vllm.sif" ]; then cp "$HOME/vllm.sif" "$SIF"
 else apptainer build --force "$SIF" "$VLLM_IMAGE" 2>&1 | tail -3; cp "$SIF" "$HOME/vllm.sif"; fi
 
-free_port() { local p="$1"; while ss -Hltn "sport = :$p" 2>/dev/null | grep -q LISTEN; do p=$((p+1)); done; echo "$p"; }
-PORT="$(free_port $(( 11500 + (${SLURM_JOBID:-0} % 100) )))"
+# Port range 12000-12999 is DISJOINT from the pddl-copilot-experiments planBench
+# sweep (11500-11998). Both serve vLLM on 0.0.0.0 and the eval connects via
+# localhost:$PORT, so a shared node + overlapping port range could cross-wire a
+# csqa eval onto a planBench server. Keeping the ranges separate prevents that.
+free_port() { local p="$1"; while ss -Hltn "sport = :$p" 2>/dev/null | grep -q LISTEN; do p=$((p+1)); [ "$p" -ge 12999 ] && { echo "Error: no free port in 12000-12998" >&2; exit 4; }; done; echo "$p"; }
+PORT="$(free_port $(( 12000 + (${SLURM_JOBID:-0} % 100) )))"
 SERVE_LOG="$PROJ_ROOT/cluster/logs/${SLURM_JOBID:-local}-vllm-${MODEL_TAG_FS}.log"
 
 echo "Serving $HF_MODEL on :$PORT (reasoning: ${REASONING_PARSER_FLAG:-none})"
