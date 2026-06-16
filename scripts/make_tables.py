@@ -28,6 +28,19 @@ def _stars(p):
     return "***" if p < 0.001 else "**" if p < 0.01 else "*" if p < 0.05 else ""
 
 
+# Cells where more than this fraction of generations were unparseable (no A–E
+# letter emitted) are flagged: the accuracy reflects an output-FORMAT failure,
+# not reasoning, and must be excluded from model comparisons. Threshold 0.5
+# isolates the Qwen3.5:0.8B think-on row (85–95% unparsed) from every other
+# cell (next-highest is ~23%).
+UNPARSE_FLAG = 0.5
+
+
+def _unreliable(r) -> bool:
+    n = r["n"] if r["n"] else 0
+    return bool(n) and (r["unparsed"] / n) > UNPARSE_FLAG
+
+
 # --------------------------------------------------------------------------- #
 def accuracy_md(summary) -> str:
     """One row per (model, think): en-en accuracy then each en-x lang, with CIs."""
@@ -44,7 +57,13 @@ def accuracy_md(summary) -> str:
             for lang in langs:
                 cells.append(_acc_cell(summary, model, think, "en-x", lang))
             lines.append("| " + " | ".join(cells) + " |")
-    return "\n".join(lines) + "\n"
+    md = "\n".join(lines) + "\n"
+    if "†" in md:
+        md += ("\n> **†** Over 50% of generations were unparseable (the model never "
+               "emitted an A–E letter). These accuracies reflect an output-**format** "
+               "failure, not commonsense reasoning, and should be **excluded** from "
+               "model comparisons. Affects only `Qwen3.5:0.8B` with `think=on`.\n")
+    return md
 
 
 def _acc_cell(summary, model, think, cond, lang) -> str:
@@ -53,7 +72,8 @@ def _acc_cell(summary, model, think, cond, lang) -> str:
     if not len(row):
         return "—"
     r = row.iloc[0]
-    return f"{r['accuracy']:.3f} [{r['ci_low']:.3f},{r['ci_high']:.3f}]"
+    flag = " †" if _unreliable(r) else ""
+    return f"{r['accuracy']:.3f} [{r['ci_low']:.3f},{r['ci_high']:.3f}]{flag}"
 
 
 def flips_md(flips) -> str:
@@ -120,7 +140,10 @@ def accuracy_tex(summary) -> str:
             + "\n\\bottomrule\n\\end{tabular}\n"
             "\\caption{Accuracy per condition (Wilson 95\\% CI). en-en is the "
             "English baseline; en-x keeps the English question and translates the "
-            "answer choices into language $x$.}\n\\label{tab:accuracy}\n\\end{table}\n")
+            "answer choices into language $x$. $^\\dagger$: $>$50\\% of generations "
+            "were unparseable (no A--E letter); accuracy reflects an output-format "
+            "failure, not reasoning, and is excluded from comparisons.}"
+            "\n\\label{tab:accuracy}\n\\end{table}\n")
 
 
 def _acc_tex(summary, model, think, cond, lang) -> str:
@@ -129,7 +152,8 @@ def _acc_tex(summary, model, think, cond, lang) -> str:
     if not len(row):
         return "--"
     r = row.iloc[0]
-    return f"{r['accuracy']:.3f}"
+    flag = "$^\\dagger$" if _unreliable(r) else ""
+    return f"{r['accuracy']:.3f}{flag}"
 
 
 def _tex(s: str) -> str:
