@@ -42,7 +42,14 @@ _ISOLATED = re.compile(r"\b([A-E])\b")
 
 def extract_letter(text: str | None, choices: dict[str, str] | None = None) -> str | None:
     """Return the chosen label A-E, or None if unparseable. Tiered: bare letter →
-    'answer is X' → leading letter → first isolated letter → echoed-phrase fallback."""
+    'answer is X' → leading letter → first isolated letter.
+
+    No text-matching against choice strings (load-bearing convention #2, CLAUDE.md):
+    scoring must never depend on answer wording, or string matches in a translated
+    answer set would masquerade as a concept-grounding effect and confound the flip
+    metric. An unparseable answer therefore stays None (scored wrong), never rescued
+    by echoing a choice. ``choices`` is accepted for backend API stability but unused.
+    """
     if not text:
         return None
     t = text.strip()
@@ -51,11 +58,4 @@ def extract_letter(text: str | None, choices: dict[str, str] | None = None) -> s
         if m:
             return m.group(1).upper()
     m = _ISOLATED.search(t)
-    if m:
-        return m.group(1)
-    if choices:
-        low = t.lower()
-        hits = [lab for lab, txt in choices.items() if txt and txt.lower() in low]
-        if len(hits) == 1:
-            return hits[0]
-    return None
+    return m.group(1) if m else None

@@ -7,6 +7,7 @@ results/flips.csv for the paper's tables/.
 from __future__ import annotations
 
 import argparse
+import sys
 from pathlib import Path
 
 from csqa_xlang.analysis import aggregate
@@ -14,6 +15,10 @@ from csqa_xlang.config import load_config
 
 
 def main() -> None:
+    # The table headers use → / ← ; force UTF-8 stdout so a latin-1 locale
+    # (common under WSL/SLURM) doesn't crash the run after the CSVs are written.
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--config", default="configs/default.yaml")
     ap.add_argument("--results-dir")
