@@ -23,7 +23,7 @@ def run_dir(results_root: str | Path, model_tag: str, variant: Variant,
     if think is not None:
         name += f"__think-{think}"
     name += f"__{variant.variant_hash[:8]}"
-    return Path(results_root) / model_tag.replace("/", "_") / name
+    return Path(results_root) / model_tag.replace("/", "_").replace(":","-") / name
 
 
 def is_cached(results_root, model_tag, variant, think=None) -> bool:
