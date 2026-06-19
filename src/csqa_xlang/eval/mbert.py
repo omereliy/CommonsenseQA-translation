@@ -1,9 +1,10 @@
-"""XLM-R instance of the encoder multiple-choice arm.
+"""mBERT instance of the encoder multiple-choice arm.
 
-Fine-tunes ``xlm-roberta-base`` on ENGLISH CSQA; evaluating the en-x variants
-measures zero-shot cross-lingual transfer. All logic lives in ``encoder_mc`` (the
-shared CLS→Linear MC head); this module just pins the base model. See
-``encoder_mc`` for why we don't use ``AutoModelForMultipleChoice``.
+Fine-tunes ``bert-base-multilingual-cased`` (104 languages, incl. es/ru/he) on
+ENGLISH CSQA; evaluating the en-x variants measures zero-shot cross-lingual
+transfer — the multilingual-encoder counterpart to the XLM-R arm. mBERT uses
+``token_type_ids`` (segment A=question, B=choice); ``encoder_mc`` passes them
+through. All logic lives in ``encoder_mc``; this module just pins the base model.
 """
 
 from __future__ import annotations
@@ -14,7 +15,7 @@ from csqa_xlang.data import CSQAItem
 from csqa_xlang.eval import encoder_mc
 from csqa_xlang.eval.base import Prediction
 
-MODEL = "xlm-roberta-base"
+MODEL = "bert-base-multilingual-cased"
 
 
 def train(ckpt_dir: str | Path, *, train_items: list[CSQAItem] | None = None,

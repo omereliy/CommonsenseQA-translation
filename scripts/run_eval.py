@@ -39,7 +39,8 @@ def plan_variants(cfg, vdir: Path):
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--config", default="configs/default.yaml")
-    ap.add_argument("--arm", choices=["generative", "xlmr", "esim"], default="generative")
+    ap.add_argument("--arm", choices=["generative", "xlmr", "mbert", "esim"],
+                    default="generative")
     ap.add_argument("--model-tag")
     ap.add_argument("--model-hf")
     ap.add_argument("--base-url", default=os.environ.get("LLM_BASE_URL"))
@@ -105,6 +106,20 @@ def main() -> None:
                       variant=vv, predictions=preds, prompt_template="xlmr:[q]+[choice] MC-head",
                       think=None, decoding={"type": "mc-head", "argmax": True})
             print(f"  xlmr {v.condition}/{v.language}: "
+                  f"acc={sum(p.correct for p in preds) / max(len(preds), 1):.3f}", flush=True)
+
+    elif args.arm == "mbert":
+        from csqa_xlang.eval import mbert
+        ckpt = args.ckpt or "checkpoints/mbert-csqa"
+        model_tag = args.model_tag or "bert-base-multilingual-cased"
+        for v in variants:
+            from csqa_xlang.variants import Variant
+            vv = v if not args.limit else Variant(v.condition, v.language, items_of(v))
+            preds = mbert.predict(items_of(v), ckpt)
+            write_run(results_root, model_tag=model_tag, model_snapshot="finetuned-en",
+                      variant=vv, predictions=preds, prompt_template="mbert:[q]+[choice] MC-head",
+                      think=None, decoding={"type": "mc-head", "argmax": True})
+            print(f"  mbert {v.condition}/{v.language}: "
                   f"acc={sum(p.correct for p in preds) / max(len(preds), 1):.3f}", flush=True)
 
     elif args.arm == "esim":
