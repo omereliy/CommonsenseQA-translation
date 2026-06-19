@@ -1,0 +1,32 @@
+# Eval config for the CONSENSUS translation set (majority vote across
+# Google/NLLB/Opus; Google breaks ties). Build it first:
+#   python -m scripts.build_consensus
+# then eval a trained encoder against the <lang>-consensus variants:
+#   python -m scripts.run_eval --arm xlmr  --ckpt checkpoints/xlmr-csqa-epoch6  --model-tag xlmr-ep6  --config configs/consensus.yaml
+#   python -m scripts.run_eval --arm mbert --ckpt checkpoints/mbert-csqa-epoch6 --model-tag mbert-ep6 --config configs/consensus.yaml
+
+seed: 42
+
+dataset:
+  name: tau/commonsense_qa
+  split: validation
+
+languages:
+  source: en
+  targets: [ru-consensus, es-consensus, he-consensus]
+
+conditions:
+  - en-x
+
+translation:
+  backend: consensus
+
+eval:
+  answer_format: letter
+  decoding:
+    temperature: 0
+
+paths:
+  data_translated: data/translated/consensus
+  data_variants: data/variants
+  results: results

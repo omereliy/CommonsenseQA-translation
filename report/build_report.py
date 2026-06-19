@@ -274,12 +274,12 @@ def fig_heatmap(summary, models):
 def fig_sources(summary):
     """Translator robustness: xlmr-ep6 / mbert-ep6 accuracy across Google/NLLB/Opus."""
     pairs = [("xlmr-ep6", "XLM-R (ft)"), ("mbert-ep6", "mBERT (ft)")]
-    srcs = [("", "Google"), ("-nllb", "NLLB"), ("-opus", "Opus")]
+    srcs = [("", "Google"), ("-nllb", "NLLB"), ("-opus", "Opus"), ("-consensus", "Consensus")]
     fig, axes = plt.subplots(1, 2, figsize=(11, 4.4), sharey=True)
     ok = False
     for ax, (mdl, name) in zip(axes, pairs):
         x = range(len(LANGS))
-        w = 0.25
+        w = 0.2
         for j, (suf, sname) in enumerate(srcs):
             vals = []
             for lang in LANGS:
@@ -287,14 +287,14 @@ def fig_sources(summary):
                 vals.append(float(r.accuracy.iloc[0]) if len(r) else 0)
             if any(vals):
                 ok = True
-            ax.bar([xi + (j - 1) * w for xi in x], vals, w, label=sname)
+            ax.bar([xi + (j - 1.5) * w for xi in x], vals, w, label=sname)
         ax.set_xticks(list(x))
         ax.set_xticklabels([LANG_NAME[l] for l in LANGS])
         ax.set_title(name, fontsize=11)
         ax.set_ylim(0.30, 0.46)
     axes[0].set_ylabel("en-x accuracy")
     axes[-1].legend(title="translator", fontsize=9)
-    fig.suptitle("Robustness: the en→x drop replicates across three independent translators",
+    fig.suptitle("Robustness: the en→x drop replicates across translators and a majority-vote consensus",
                  weight="bold")
     if ok:
         savefig(fig, "fig7_translation_sources.png")
@@ -595,13 +595,14 @@ choices/lang):
 
 Three independent MT systems (Google / NLLB / Opus) agree on the exact word only
 **35–48%** of the time — the translations are genuinely diverse. Yet model accuracy
-is stable across them:
+is stable across them, and across a **majority-vote consensus** set (≥2 of 3 agree,
+else Google breaks the tie; ties broken on 16–27% of choices):
 
 {"![sources](figures/fig7_translation_sources.png)" if has_sources else "_(translation-source runs not present)_"}
 
-The degradation ordering is **translator-invariant**: every MT system produces the
-same pattern for the encoders, so the effect is not an artifact of one translation
-backend — it separates concept-grounding from MT noise.
+The degradation ordering is **translator-invariant**: Google, NLLB, Opus and the
+consensus set all produce the same pattern for the encoders, so the effect is not an
+artifact of one translation backend — it separates concept-grounding from MT noise.
 
 ## 5. Training dynamics (encoders)
 

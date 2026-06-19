@@ -105,13 +105,14 @@ choices/lang):
 
 Three independent MT systems (Google / NLLB / Opus) agree on the exact word only
 **35–48%** of the time — the translations are genuinely diverse. Yet model accuracy
-is stable across them:
+is stable across them, and across a **majority-vote consensus** set (≥2 of 3 agree,
+else Google breaks the tie; ties broken on 16–27% of choices):
 
 ![sources](figures/fig7_translation_sources.png)
 
-The degradation ordering is **translator-invariant**: every MT system produces the
-same pattern for the encoders, so the effect is not an artifact of one translation
-backend — it separates concept-grounding from MT noise.
+The degradation ordering is **translator-invariant**: Google, NLLB, Opus and the
+consensus set all produce the same pattern for the encoders, so the effect is not an
+artifact of one translation backend — it separates concept-grounding from MT noise.
 
 ## 5. Training dynamics (encoders)
 
