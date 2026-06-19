@@ -31,7 +31,18 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parent.parent
 RESULTS = ROOT / "results"
 VARIANTS = ROOT / "data" / "variants"
+TRANSLATED = ROOT / "data" / "translated"
 FIG = Path(__file__).resolve().parent / "figures"
+
+import re
+import unicodedata
+_NIQQUD = re.compile(r"[֑-ׇ]")
+_WS = re.compile(r"\s+")
+
+
+def _norm_t(t: str) -> str:
+    t = unicodedata.normalize("NFC", t or "").casefold().strip()
+    return _WS.sub(" ", _NIQQUD.sub("", t))
 
 # --- house style ----------------------------------------------------------- #
 plt.rcParams.update({
@@ -293,6 +304,71 @@ def fig_sources(summary):
     return True
 
 
+def translation_stats():
+    """Descriptive stats on the Google choice translations actually used (per lang)."""
+    try:
+        en = {r["id"]: r["choices"] for r in json.loads(
+            (VARIANTS / "en-en__en.json").read_text(encoding="utf-8"))["items"]}
+    except FileNotFoundError:
+        return {}
+    out = {}
+    for lang in LANGS:
+        p = TRANSLATED / f"choices_{lang}.json"
+        if not p.exists():
+            continue
+        rows = json.loads(p.read_text(encoding="utf-8"))
+        nq = len(rows)
+        nch = lens = coll_q = coll_ch = unchanged = 0
+        lensum = 0
+        for r in rows:
+            vals = list(r["choices"].values())
+            nch += len(vals)
+            lensum += sum(len(v) for v in vals)
+            nv = [_norm_t(v) for v in vals]
+            seen = {}
+            for x in nv:
+                seen[x] = seen.get(x, 0) + 1
+            dups = sum(c - 1 for c in seen.values() if c > 1)
+            coll_ch += dups
+            coll_q += 1 if dups else 0
+            ec = en.get(r["id"], {})
+            for lab, v in r["choices"].items():
+                if lab in ec and _norm_t(v) == _norm_t(ec[lab]):
+                    unchanged += 1
+        out[lang] = dict(nq=nq, nch=nch, avg_len=lensum / nch,
+                         coll_q=coll_q, coll_ch=coll_ch, unchanged=unchanged)
+    return out
+
+
+def fig_agreement(agree):
+    if not len(agree):
+        return False
+    comps = [("google-nllb", "Google–NLLB"), ("google-opus", "Google–Opus"),
+             ("nllb-opus", "NLLB–Opus"), ("all-unanimous", "all 3 agree")]
+    colors = ["#4C72B0", "#DD8452", "#55A868", "#8172B3"]
+    x = range(len(LANGS))
+    w = 0.2
+    fig, ax = plt.subplots(figsize=(8.5, 4.7))
+    for j, (key, lab) in enumerate(comps):
+        vals = []
+        for lang in LANGS:
+            r = agree[(agree.lang == lang) & (agree.comparison == key)]
+            vals.append(float(r.agreement.iloc[0]) if len(r) else 0)
+        bars = ax.bar([xi + (j - 1.5) * w for xi in x], vals, w, color=colors[j], label=lab)
+        for b, v in zip(bars, vals):
+            ax.text(b.get_x() + b.get_width() / 2, v + 0.01, f"{v:.0%}",
+                    ha="center", fontsize=7.5)
+    ax.set_xticks(list(x))
+    ax.set_xticklabels([LANG_NAME[l] for l in LANGS])
+    ax.set_ylim(0, 0.75)
+    ax.set_ylabel("exact-match agreement on choice strings")
+    ax.set_title("Translation diversity — how often two MT systems pick the SAME word",
+                 weight="bold")
+    ax.legend(ncol=4, fontsize=8.5, loc="upper center")
+    savefig(fig, "fig9_translation_agreement.png")
+    return True
+
+
 def fig_training():
     fig, ax = plt.subplots(figsize=(7.5, 4.6))
     for name, curve in DEV_ACC.items():
@@ -388,6 +464,24 @@ def flip_table(flips, models):
     return "\n".join(lines)
 
 
+def translation_table(ts, agree):
+    head = ("| answer language | avg choice length | within-question collisions | "
+            "choices unchanged from English | 3-MT unanimous |\n"
+            "|---|---|---|---|---|")
+    lines = [head]
+    for lang in LANGS:
+        s = ts.get(lang)
+        if not s:
+            continue
+        un = agree[(agree.lang == lang) & (agree.comparison == "all-unanimous")]
+        un = f"{float(un.agreement.iloc[0]):.0%}" if len(un) else "—"
+        lines.append(
+            f"| {LANG_NAME[lang]} | {s['avg_len']:.1f} chars | "
+            f"{s['coll_q']} q ({s['coll_q']/s['nq']:.1%}) | "
+            f"{s['unchanged']} ({s['unchanged']/s['nch']:.1%}) | {un} |")
+    return "\n".join(lines)
+
+
 def examples_md(rows, lang):
     if not rows:
         return "_(no cached predictions found for examples)_"
@@ -401,7 +495,8 @@ def examples_md(rows, lang):
     return "\n".join(out)
 
 
-def build_readme(summary, flips, agree, models, has_sources, ex_rows, ex_lang):
+def build_readme(summary, flips, agree, models, has_sources, ex_rows, ex_lang,
+                 ts, has_agreement):
     n_models = summary.model.nunique() if len(summary) else 0
     haiku_en = en_acc(summary, "haiku-4.5-subagent")
     xlmr_en = en_acc(summary, "xlmr-ep6")
@@ -479,13 +574,34 @@ which is what drives the accuracy drop.
 The clearest single result: **the more capable the model, the smaller the flip rate.**
 Concept-grounding is not all-or-nothing — it emerges with model strength.
 
-## 4. Robustness — three independent translators
+## 4. The translations themselves
+
+The main experiment uses **Google Cloud Translation** for the answer choices
+(question stays English). Descriptive stats on that set (n=1221 questions, 6105
+choices/lang):
+
+{translation_table(ts, agree)}
+
+- **Within-question collisions** (~5–6%): two different English choices translate to
+  the *same* target string, making those items genuinely ambiguous — a built-in noise
+  floor that caps achievable accuracy and explains some flips.
+- **Unchanged from English**: Spanish keeps **4.2%** of choices in English form
+  (cognates / proper nouns) vs ~1% for Russian/Hebrew — Spanish sits "closest" to the
+  English surface.
+- **Hebrew is hardest to translate**: shortest choices, lowest cross-MT agreement, and
+  Opus-MT additionally emits Latin-script hallucinations on **4.3%** of Hebrew cells.
+
+{"![agreement](figures/fig9_translation_agreement.png)" if has_agreement else ""}
+
+Three independent MT systems (Google / NLLB / Opus) agree on the exact word only
+**35–48%** of the time — the translations are genuinely diverse. Yet model accuracy
+is stable across them:
 
 {"![sources](figures/fig7_translation_sources.png)" if has_sources else "_(translation-source runs not present)_"}
 
 The degradation ordering is **translator-invariant**: every MT system produces the
-same en > es ≈ ru > he pattern for the encoders, so the effect is not an artifact of
-one translation backend.
+same pattern for the encoders, so the effect is not an artifact of one translation
+backend — it separates concept-grounding from MT noise.
 
 ## 5. Training dynamics (encoders)
 
@@ -538,12 +654,15 @@ def main():
     fig_direction(flips, models)
     fig_flip_vs_capability(summary, flips, models)
     fig_heatmap(summary, models)
+    ts = translation_stats()
+    has_agreement = fig_agreement(agree)
     has_sources = fig_sources(summary)
     fig_training()
     ex_lang = "he"
     ex_rows = examples("haiku-4.5-subagent", ex_lang, k=3)
     print("writing README...")
-    build_readme(summary, flips, agree, models, has_sources, ex_rows, ex_lang)
+    build_readme(summary, flips, agree, models, has_sources, ex_rows, ex_lang,
+                 ts, has_agreement)
     print("done.")
 
 

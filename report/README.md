@@ -80,13 +80,38 @@ which is what drives the accuracy drop.
 The clearest single result: **the more capable the model, the smaller the flip rate.**
 Concept-grounding is not all-or-nothing — it emerges with model strength.
 
-## 4. Robustness — three independent translators
+## 4. The translations themselves
+
+The main experiment uses **Google Cloud Translation** for the answer choices
+(question stays English). Descriptive stats on that set (n=1221 questions, 6105
+choices/lang):
+
+| answer language | avg choice length | within-question collisions | choices unchanged from English | 3-MT unanimous |
+|---|---|---|---|---|
+| Russian | 10.7 chars | 76 q (6.2%) | 6 (0.1%) | 39% |
+| Spanish | 10.9 chars | 64 q (5.2%) | 256 (4.2%) | 48% |
+| Hebrew | 7.4 chars | 59 q (4.8%) | 53 (0.9%) | 35% |
+
+- **Within-question collisions** (~5–6%): two different English choices translate to
+  the *same* target string, making those items genuinely ambiguous — a built-in noise
+  floor that caps achievable accuracy and explains some flips.
+- **Unchanged from English**: Spanish keeps **4.2%** of choices in English form
+  (cognates / proper nouns) vs ~1% for Russian/Hebrew — Spanish sits "closest" to the
+  English surface.
+- **Hebrew is hardest to translate**: shortest choices, lowest cross-MT agreement, and
+  Opus-MT additionally emits Latin-script hallucinations on **4.3%** of Hebrew cells.
+
+![agreement](figures/fig9_translation_agreement.png)
+
+Three independent MT systems (Google / NLLB / Opus) agree on the exact word only
+**35–48%** of the time — the translations are genuinely diverse. Yet model accuracy
+is stable across them:
 
 ![sources](figures/fig7_translation_sources.png)
 
 The degradation ordering is **translator-invariant**: every MT system produces the
-same en > es ≈ ru > he pattern for the encoders, so the effect is not an artifact of
-one translation backend.
+same pattern for the encoders, so the effect is not an artifact of one translation
+backend — it separates concept-grounding from MT noise.
 
 ## 5. Training dynamics (encoders)
 
