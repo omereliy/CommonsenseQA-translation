@@ -1,0 +1,5 @@
+model,think,condition,lang,n,accuracy,ci_low,ci_high,unparsed
+haiku-4.5-subagent,na,en-en,en,1221,0.8542,0.8333,0.8729,0
+haiku-4.5-subagent,na,en-x,es,1221,0.8329,0.811,0.8528,0
+haiku-4.5-subagent,na,en-x,he,1221,0.8174,0.7947,0.838,1
+haiku-4.5-subagent,na,en-x,ru,1221,0.8124,0.7896,0.8334,0

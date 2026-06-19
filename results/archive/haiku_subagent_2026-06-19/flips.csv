@@ -1,0 +1,4 @@
+model,think,lang,n,flip_rate,toward_gold,away_gold,acc_en,acc_x,mcnemar_p
+haiku-4.5-subagent,na,es,1221,0.131,60,86,0.8542,0.8329,0.03854
+haiku-4.5-subagent,na,he,1221,0.1491,61,106,0.8542,0.8174,0.00066
+haiku-4.5-subagent,na,ru,1221,0.1278,47,98,0.8542,0.8124,3e-05
