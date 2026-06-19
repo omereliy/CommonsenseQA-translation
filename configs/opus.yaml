@@ -1,0 +1,34 @@
+# Eval config for the Opus-MT translation set (Helsinki-NLP Marian, en->{es,ru,he}).
+# Evaluates the en-x variants whose choices were translated by Opus-MT (labeled
+# <lang>-opus), reusing the already-built en-en baseline for the flip comparison.
+# Build the variants first:
+#   python -m scripts.build_mt --backend opus
+# then eval a trained encoder, e.g.:
+#   python -m scripts.run_eval --arm xlmr  --ckpt checkpoints/xlmr-csqa-epoch6  --model-tag xlmr-ep6  --config configs/opus.yaml
+#   python -m scripts.run_eval --arm mbert --ckpt checkpoints/mbert-csqa-epoch6 --model-tag mbert-ep6 --config configs/opus.yaml
+
+seed: 42
+
+dataset:
+  name: tau/commonsense_qa
+  split: validation
+
+languages:
+  source: en
+  targets: [ru-opus, es-opus, he-opus]
+
+conditions:
+  - en-x
+
+translation:
+  backend: opus
+
+eval:
+  answer_format: letter
+  decoding:
+    temperature: 0
+
+paths:
+  data_translated: data/translated/opus
+  data_variants: data/variants
+  results: results

@@ -1,0 +1,33 @@
+# Eval config for the NLLB translation set. Evaluates the en-x variants whose
+# choices were translated by NLLB-200 (labeled <lang>-nllb), reusing the already-
+# built en-en baseline for the flip comparison. Build the variants first with
+#   python -m scripts.build_nllb
+# then eval a trained encoder, e.g.:
+#   python -m scripts.run_eval --arm xlmr  --ckpt checkpoints/xlmr-csqa-epoch6  --model-tag xlmr-ep6  --config configs/nllb.yaml
+#   python -m scripts.run_eval --arm mbert --ckpt checkpoints/mbert-csqa-epoch6 --model-tag mbert-ep6 --config configs/nllb.yaml
+
+seed: 42
+
+dataset:
+  name: tau/commonsense_qa
+  split: validation
+
+languages:
+  source: en
+  targets: [ru-nllb, es-nllb, he-nllb]   # NLLB-translated choices
+
+conditions:
+  - en-x                                  # baseline en-en already evaluated; flip uses it
+
+translation:
+  backend: nllb
+
+eval:
+  answer_format: letter
+  decoding:
+    temperature: 0
+
+paths:
+  data_translated: data/translated/nllb
+  data_variants: data/variants
+  results: results

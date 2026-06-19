@@ -1,0 +1,14 @@
+lang,comparison,n,agreement
+ru,google-nllb,6105,0.5319
+ru,google-opus,6105,0.487
+ru,nllb-opus,6105,0.4899
+ru,all-unanimous,6105,0.3867
+es,google-nllb,6105,0.5741
+es,google-opus,6105,0.6313
+es,nllb-opus,6105,0.5962
+es,all-unanimous,6105,0.4816
+he,google-nllb,6105,0.4801
+he,google-opus,6105,0.5463
+he,nllb-opus,6105,0.4344
+he,all-unanimous,6105,0.3495
+he,opus-latin-artifact,6105,0.0428
