@@ -28,7 +28,7 @@ from __future__ import annotations
 import asyncio
 import os
 
-from openai import AsyncOpenAI
+from openai import APITimeoutError, AsyncOpenAI, RateLimitError
 
 from csqa_xlang.data import CSQAItem
 from csqa_xlang.eval.base import Prediction, score
@@ -36,6 +36,14 @@ from csqa_xlang.eval.prompt import build_messages, extract_letter
 
 # Google's OpenAI-compatible base; the openai client appends /chat/completions.
 GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+
+# Retry/backoff for the free + low tiers, which enforce tight per-minute limits
+# and answer bursts with HTTP 429. Exponential backoff (honouring Retry-After
+# when present) lets a sweep ride through rate-limit 429s. A persistent 429
+# (free-tier quota exhausted / a model with no free quota, e.g. gemini-2.5-pro)
+# still surfaces after the retries — that is a billing problem, not a transient.
+_MAX_RETRIES = 6
+_BACKOFF_BASE = 2.0  # seconds: 2, 4, 8, 16, 32, 64
 
 
 def _thinking_config(think: bool) -> dict:
@@ -49,16 +57,37 @@ def _thinking_config(think: bool) -> dict:
         "thinking_budget": budget, "include_thoughts": think}}}}
 
 
+def _retry_after_seconds(err: RateLimitError, attempt: int) -> float:
+    """Honour a Retry-After header if the 429 carries one, else exponential backoff."""
+    resp = getattr(err, "response", None)
+    hdr = resp.headers.get("retry-after") if resp is not None else None
+    if hdr:
+        try:
+            return float(hdr)
+        except ValueError:
+            pass
+    return _BACKOFF_BASE * (2 ** attempt)
+
+
 async def _one(client, model, item: CSQAItem, think: bool, num_predict: int,
                temperature: float, sem) -> Prediction:
     async with sem:
-        resp = await client.chat.completions.create(
-            model=model,
-            messages=build_messages(item.question, item.choices),
-            temperature=temperature,
-            max_tokens=num_predict,
-            extra_body=_thinking_config(think),
-        )
+        for attempt in range(_MAX_RETRIES + 1):
+            try:
+                resp = await client.chat.completions.create(
+                    model=model,
+                    messages=build_messages(item.question, item.choices),
+                    temperature=temperature,
+                    max_tokens=num_predict,
+                    extra_body=_thinking_config(think),
+                )
+                break
+            except (RateLimitError, APITimeoutError) as e:
+                if attempt == _MAX_RETRIES:
+                    raise
+                await asyncio.sleep(_retry_after_seconds(e, attempt)
+                                    if isinstance(e, RateLimitError)
+                                    else _BACKOFF_BASE * (2 ** attempt))
     choice = resp.choices[0]
     msg = choice.message
     content = msg.content or ""
