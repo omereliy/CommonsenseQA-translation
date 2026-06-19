@@ -11,10 +11,11 @@ from __future__ import annotations
 from csqa_xlang.eval.base import Prediction, score
 from csqa_xlang.eval.prompt import (LABELS, PROMPT_TEMPLATE, build_messages,
                                     build_prompt, extract_letter)
+from csqa_xlang.eval.gemini_backend import run_gemini
 from csqa_xlang.eval.runner import is_cached, run_dir, write_run
 from csqa_xlang.eval.vllm_backend import run_generative
 
-__all__ = ["Prediction", "score", "run_generative", "xlmr", "esim",
+__all__ = ["Prediction", "score", "run_generative", "run_gemini", "xlmr", "esim",
            "build_prompt", "build_messages", "extract_letter", "PROMPT_TEMPLATE",
            "LABELS", "run_dir", "is_cached", "write_run"]
 

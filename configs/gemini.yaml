@@ -1,0 +1,44 @@
+# Eval config for the Gemini arm (Google Gemini 2.x via the OpenAI-compat endpoint).
+# A managed-API generative arm alongside the vLLM-served Qwens. Auth: GEMINI_API_KEY
+# (Google AI Studio; NOT GOOGLE_API_KEY, which is the Cloud Translation key).
+#
+# Run (think off is the scored default; the prompt asks for a bare letter):
+#   python -m scripts.run_eval --arm gemini --config configs/gemini.yaml --think off
+# Evaluates all conditions/targets below over the already-built Google en-x variants.
+# To score the NLLB/Opus translation sources too, point --config at configs/{nllb,opus}.yaml
+# and keep --arm gemini.
+#
+# Determinism caveat (see eval/gemini_backend.py): Gemini is not bit-exact even at
+# temperature=0, and gemini-2.5-pro cannot disable thinking (think=off == minimum
+# budget). Read scored Gemini runs as approximately deterministic; the manifest
+# records temperature + thinking_budget.
+
+seed: 42
+
+dataset:
+  name: tau/commonsense_qa
+  split: validation
+
+languages:
+  source: en
+  targets: [ru, es, he]
+
+conditions:
+  - en-en                    # baseline for the flip comparison
+  - en-x                     # the core probe
+
+eval:
+  answer_format: letter
+  think_modes: [off]         # add "on" to also run a thinking pass (billed: thinking = output tokens)
+  decoding:
+    temperature: 0
+    max_tokens_think_off: 512    # > pro's min thinking budget so the letter isn't truncated
+    max_tokens_think_on: 8192
+  gemini:
+    model: gemini-2.5-pro    # override per run with --model-hf gemini-2.5-flash, etc.
+    max_tokens_think_off: 512
+
+paths:
+  data_translated: data/translated
+  data_variants: data/variants
+  results: results

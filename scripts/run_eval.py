@@ -39,7 +39,7 @@ def plan_variants(cfg, vdir: Path):
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--config", default="configs/default.yaml")
-    ap.add_argument("--arm", choices=["generative", "xlmr", "mbert", "esim"],
+    ap.add_argument("--arm", choices=["generative", "gemini", "xlmr", "mbert", "esim"],
                     default="generative")
     ap.add_argument("--model-tag")
     ap.add_argument("--model-hf")
@@ -93,6 +93,34 @@ def main() -> None:
                     acc = sum(p.correct for p in preds) / max(len(preds), 1)
                     print(f"  {m['tag']} {v.condition}/{v.language} think={think}: "
                           f"acc={acc:.3f} (n={len(preds)})", flush=True)
+
+    elif args.arm == "gemini":
+        from csqa_xlang.eval import run_gemini
+        from csqa_xlang.variants import Variant
+        gcfg = (cfg["eval"].get("gemini") or {})
+        model = args.model_hf or gcfg.get("model", "gemini-2.5-pro")
+        model_tag = args.model_tag or model
+        thinks = [args.think] if args.think else (cfg["eval"].get("think_modes") or ["off"])
+        for think in thinks:
+            npredict = dec.get("max_tokens_think_on", 8192) if think == "on" \
+                else gcfg.get("max_tokens_think_off", 512)
+            for v in variants:
+                vv = v if not args.limit else Variant(v.condition, v.language, items_of(v))
+                if is_cached(results_root, model_tag, vv, think) and not args.force:
+                    print(f"  cached: {model_tag} {v.condition}/{v.language} think={think}")
+                    continue
+                preds = run_gemini(items_of(v), model=model, think=(think == "on"),
+                                   num_predict=npredict, temperature=temp,
+                                   concurrency=args.concurrency)
+                write_run(results_root, model_tag=model_tag, model_snapshot=model,
+                          variant=vv, predictions=preds, prompt_template=PROMPT_TEMPLATE,
+                          think=think, decoding={"temperature": temp, "max_tokens": npredict,
+                                                 "think": think, "thinking_budget":
+                                                 (-1 if think == "on" else 0),
+                                                 "provider": "gemini-openai-compat"})
+                acc = sum(p.correct for p in preds) / max(len(preds), 1)
+                print(f"  {model_tag} {v.condition}/{v.language} think={think}: "
+                      f"acc={acc:.3f} (n={len(preds)})", flush=True)
 
     elif args.arm == "xlmr":
         from csqa_xlang.eval import xlmr
