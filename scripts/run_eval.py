@@ -96,11 +96,12 @@ def main() -> None:
     elif args.arm == "xlmr":
         from csqa_xlang.eval import xlmr
         ckpt = args.ckpt or "checkpoints/xlmr-csqa"
+        model_tag = args.model_tag or "xlm-roberta-base"
         for v in variants:
             from csqa_xlang.variants import Variant
             vv = v if not args.limit else Variant(v.condition, v.language, items_of(v))
             preds = xlmr.predict(items_of(v), ckpt)
-            write_run(results_root, model_tag="xlm-roberta-base", model_snapshot="finetuned-en",
+            write_run(results_root, model_tag=model_tag, model_snapshot="finetuned-en",
                       variant=vv, predictions=preds, prompt_template="xlmr:[q]+[choice] MC-head",
                       think=None, decoding={"type": "mc-head", "argmax": True})
             print(f"  xlmr {v.condition}/{v.language}: "

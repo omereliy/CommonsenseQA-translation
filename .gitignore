@@ -19,9 +19,11 @@ data/raw/**
 data/translated/**
 data/variants/**
 results/**
-checkpoints/**          # fine-tuned XLM-R / ESIM weights (derived)
-cluster/logs/**         # SLURM job logs
-*.sif                   # apptainer images
+# fine-tuned XLM-R / ESIM weights (derived); SLURM logs; apptainer images
+# (comments must be on their own line — inline comments become part of the pattern)
+checkpoints/**
+cluster/logs/**
+*.sif
 # keep the directory skeletons and any small committed fixtures
 !data/raw/.gitkeep
 !data/translated/.gitkeep
@@ -53,3 +55,6 @@ paper/sections/*.aux
 
 # --- Claude Code local settings ---
 .claude/settings.local.json
+
+# XLM-R fine-tune split (derived; regenerate with training/xlmr_csqa/make_split.py)
+training/xlmr_csqa/splits/**
