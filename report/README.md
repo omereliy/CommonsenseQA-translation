@@ -114,6 +114,12 @@ The degradation ordering is **translator-invariant**: Google, NLLB, Opus and the
 consensus set all produce the same pattern for the encoders, so the effect is not an
 artifact of one translation backend — it separates concept-grounding from MT noise.
 
+The same accuracy-by-condition view (Fig 1's layout) per translator — en-en is
+translator-independent, and the non-Google panels are encoder-only (only XLM-R/mBERT
+were run on NLLB/Opus/Consensus):
+
+![by-translator](figures/fig11_accuracy_by_translator.png)
+
 ### Recoverable headroom — picking the answer across translations
 
 What if we combine the model's predictions under the three translations per item?

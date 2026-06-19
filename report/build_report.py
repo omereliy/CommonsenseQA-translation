@@ -146,6 +146,58 @@ def fig_accuracy(summary, models):
     savefig(fig, "fig1_accuracy_by_condition.png")
 
 
+def _acc_lang(summary, model, langkey):
+    r = summary[(summary.model == model) & (summary.lang == langkey)]
+    if not len(r):
+        return None
+    return float(r.accuracy.iloc[0]), float(r.ci_low.iloc[0]), float(r.ci_high.iloc[0])
+
+
+def fig_accuracy_by_translator(summary):
+    """fig1 layout (per-model, en-en + en-x by language) replicated per translator."""
+    trans = [("", "Google"), ("-nllb", "NLLB"), ("-opus", "Opus"), ("-consensus", "Consensus")]
+    conds = ["en", "ru", "es", "he"]
+    fig, axes = plt.subplots(2, 2, figsize=(13, 8.5), sharey=True)
+    any_panel = False
+    for ax, (suf, tname) in zip(axes.flat, trans):
+        # models that actually have en-x data under this translator
+        mods = [m for m in MAIN
+                if any(_acc_lang(summary, m, f"{l}{suf}") for l in LANGS)]
+        if not mods:
+            ax.set_visible(False)
+            continue
+        any_panel = True
+        x = range(len(mods))
+        w = 0.2
+        for j, lang in enumerate(conds):
+            key = "en" if lang == "en" else f"{lang}{suf}"
+            vals, los, his = [], [], []
+            for m in mods:
+                c = _acc_lang(summary, m, key)
+                vals.append(c[0] if c else 0)
+                los.append((c[0] - c[1]) if c else 0)
+                his.append((c[2] - c[0]) if c else 0)
+            ax.bar([xi + (j - 1.5) * w for xi in x], vals, w, yerr=[los, his],
+                   capsize=2, color=LANG_COLOR[lang],
+                   label=("en-en" if lang == "en" else f"en-x · {LANG_NAME[lang]}"),
+                   error_kw={"elinewidth": 0.8, "alpha": 0.6})
+        ax.axhline(0.20, ls="--", lw=0.8, color="#999", zorder=0)
+        ax.set_xticks(list(x))
+        ax.set_xticklabels([DISPLAY[m] for m in mods], fontsize=9)
+        ax.set_ylim(0, 1.0)
+        ax.set_title(f"{tname} translation", weight="bold")
+    axes[0, 0].set_ylabel("accuracy")
+    axes[1, 0].set_ylabel("accuracy")
+    axes.flat[0].legend(ncol=2, fontsize=8.5, loc="upper left", framealpha=0.9)
+    fig.suptitle("Accuracy by condition, per translator  (en-en is translator-independent; "
+                 "non-Google runs are encoder-only)", weight="bold", y=1.0)
+    if any_panel:
+        savefig(fig, "fig11_accuracy_by_translator.png")
+        return True
+    plt.close(fig)
+    return False
+
+
 def fig_ladder(summary, models):
     order = sorted(models, key=lambda m: en_acc(summary, m) or 0)
     vals = [en_acc(summary, m) for m in order]
@@ -561,7 +613,7 @@ def examples_md(rows, lang):
 
 
 def build_readme(summary, flips, agree, models, has_sources, ex_rows, ex_lang,
-                 ts, has_agreement, has_ensemble):
+                 ts, has_agreement, has_ensemble, has_by_translator):
     n_models = summary.model.nunique() if len(summary) else 0
     haiku_en = en_acc(summary, "haiku-4.5-subagent")
     xlmr_en = en_acc(summary, "xlmr-ep6")
@@ -669,6 +721,12 @@ The degradation ordering is **translator-invariant**: Google, NLLB, Opus and the
 consensus set all produce the same pattern for the encoders, so the effect is not an
 artifact of one translation backend — it separates concept-grounding from MT noise.
 
+The same accuracy-by-condition view (Fig 1's layout) per translator — en-en is
+translator-independent, and the non-Google panels are encoder-only (only XLM-R/mBERT
+were run on NLLB/Opus/Consensus):
+
+{"![by-translator](figures/fig11_accuracy_by_translator.png)" if has_by_translator else ""}
+
 ### Recoverable headroom — picking the answer across translations
 
 What if we combine the model's predictions under the three translations per item?
@@ -740,12 +798,13 @@ def main():
     has_agreement = fig_agreement(agree)
     has_sources = fig_sources(summary)
     has_ensemble = fig_ensemble(summary)
+    has_by_translator = fig_accuracy_by_translator(summary)
     fig_training()
     ex_lang = "he"
     ex_rows = examples("haiku-4.5-subagent", ex_lang, k=3)
     print("writing README...")
     build_readme(summary, flips, agree, models, has_sources, ex_rows, ex_lang,
-                 ts, has_agreement, has_ensemble)
+                 ts, has_agreement, has_ensemble, has_by_translator)
     print("done.")
 
 
