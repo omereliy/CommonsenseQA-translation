@@ -11,8 +11,15 @@ env/
 .python-version
 
 # --- Environment / secrets ---
+# (comments must be on their own line — inline comments become part of the pattern)
+# .env.* covers every variant (.env.local, .env.gemini, ...); keep the template.
 .env
+.env.*
+!.env.example
 *.local
+*.key
+*.pem
+secrets.*
 
 # --- Experiment payloads (derived; reproduce from config + code) ---
 data/raw/**
