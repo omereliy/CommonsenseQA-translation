@@ -369,6 +369,71 @@ def fig_agreement(agree):
     return True
 
 
+def fig_ensemble(summary):
+    """Per-item vote + oracle across Google/NLLB/Opus, for the two encoders."""
+    from scripts.translation_ensemble import combine, load_run
+    models = [("xlmr-ep6", "XLM-R (ft)"), ("mbert-ep6", "mBERT (ft)")]
+    order = ["google", "nllb", "opus"]
+    groups = LANGS + ["pooled"]
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4.6), sharey=True)
+    ok = False
+    for ax, (mdl, name) in zip(axes, models):
+        data = {}
+        pool = {"n": 0, "vote": 0, "oracle": 0, "g_ok": 0, "g_n": 0}
+        for lang in LANGS:
+            per = {}
+            for s in order:
+                d = load_run(RESULTS, mdl, lang, s)
+                if d:
+                    per[s] = d
+            if "google" not in per:
+                continue
+            g = sum(p == gg for p, gg in per["google"].values()) / len(per["google"])
+            n, v, o, _ = combine(per, [s for s in order if s in per])
+            data[lang] = {"google": g, "vote": v / n, "oracle": o / n}
+            pool["n"] += n
+            pool["vote"] += v
+            pool["oracle"] += o
+            pool["g_ok"] += sum(p == gg for p, gg in per["google"].values())
+            pool["g_n"] += len(per["google"])
+        if data:
+            ok = True
+        if pool["n"]:
+            data["pooled"] = {"google": pool["g_ok"] / pool["g_n"],
+                              "vote": pool["vote"] / pool["n"],
+                              "oracle": pool["oracle"] / pool["n"]}
+        x = range(len(groups))
+        w = 0.26
+        series = [("google", "best single (Google)", "#bbbbbb"),
+                  ("vote", "vote", "#4C72B0"), ("oracle", "oracle ceiling", HILITE)]
+        for j, (key, lab, col) in enumerate(series):
+            vals = [data.get(g, {}).get(key, 0) for g in groups]
+            bars = ax.bar([xi + (j - 1) * w for xi in x], vals, w, color=col, label=lab)
+            if key == "oracle":
+                for b, v in zip(bars, vals):
+                    if v:
+                        ax.text(b.get_x() + b.get_width() / 2, v + 0.008,
+                                f"{v:.2f}", ha="center", fontsize=8)
+        en = en_acc(summary, mdl)
+        if en:
+            ax.axhline(en, ls="--", lw=1, color="#333")
+            ax.text(len(groups) - 0.5, en + 0.006, f"en-en {en:.2f}", ha="right",
+                    fontsize=8, color="#333")
+        ax.set_xticks(list(x))
+        ax.set_xticklabels([LANG_NAME.get(g, g.title()) for g in groups])
+        ax.set_title(name)
+        ax.set_ylim(0, 0.65)
+    axes[0].set_ylabel("accuracy")
+    axes[-1].legend(fontsize=8.5, loc="upper left")
+    fig.suptitle("Combining predictions across translations — vote gives no gain, "
+                 "oracle reveals recoverable headroom", weight="bold")
+    if ok:
+        savefig(fig, "fig10_translation_ensemble.png")
+        return True
+    plt.close(fig)
+    return False
+
+
 def fig_training():
     fig, ax = plt.subplots(figsize=(7.5, 4.6))
     for name, curve in DEV_ACC.items():
@@ -496,7 +561,7 @@ def examples_md(rows, lang):
 
 
 def build_readme(summary, flips, agree, models, has_sources, ex_rows, ex_lang,
-                 ts, has_agreement):
+                 ts, has_agreement, has_ensemble):
     n_models = summary.model.nunique() if len(summary) else 0
     haiku_en = en_acc(summary, "haiku-4.5-subagent")
     xlmr_en = en_acc(summary, "xlmr-ep6")
@@ -604,6 +669,22 @@ The degradation ordering is **translator-invariant**: Google, NLLB, Opus and the
 consensus set all produce the same pattern for the encoders, so the effect is not an
 artifact of one translation backend — it separates concept-grounding from MT noise.
 
+### Recoverable headroom — picking the answer across translations
+
+What if we combine the model's predictions under the three translations per item?
+
+{"![ensemble](figures/fig10_translation_ensemble.png)" if has_ensemble else "_(ensemble runs not present)_"}
+
+- **Majority vote ≈ best single source** (xlmr-ep6 0.400 vs 0.397) — naive ensembling
+  buys nothing; the translations aren't independent enough to vote-correct.
+- **Oracle ceiling +14.7 pts** (0.544, *above* the en-en 0.510 baseline): if you could
+  pick the right translation per item, most of the en→x drop disappears. So a large
+  share of the degradation is **translation-phrasing-dependent, not concept failure** —
+  the model often knows the answer under *some* phrasing.
+- The oracle is an **upper bound** (three tries at a 5-way choice exploits chance), so
+  read the **vote→oracle gap** as recoverable headroom that no simple combiner captures.
+  (`results/translation_ensemble.csv`, `scripts/translation_ensemble.py`.)
+
 ## 5. Training dynamics (encoders)
 
 ![training](figures/fig8_training_devacc.png)
@@ -658,12 +739,13 @@ def main():
     ts = translation_stats()
     has_agreement = fig_agreement(agree)
     has_sources = fig_sources(summary)
+    has_ensemble = fig_ensemble(summary)
     fig_training()
     ex_lang = "he"
     ex_rows = examples("haiku-4.5-subagent", ex_lang, k=3)
     print("writing README...")
     build_readme(summary, flips, agree, models, has_sources, ex_rows, ex_lang,
-                 ts, has_agreement)
+                 ts, has_agreement, has_ensemble)
     print("done.")
 
 

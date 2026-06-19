@@ -114,6 +114,22 @@ The degradation ordering is **translator-invariant**: Google, NLLB, Opus and the
 consensus set all produce the same pattern for the encoders, so the effect is not an
 artifact of one translation backend — it separates concept-grounding from MT noise.
 
+### Recoverable headroom — picking the answer across translations
+
+What if we combine the model's predictions under the three translations per item?
+
+![ensemble](figures/fig10_translation_ensemble.png)
+
+- **Majority vote ≈ best single source** (xlmr-ep6 0.400 vs 0.397) — naive ensembling
+  buys nothing; the translations aren't independent enough to vote-correct.
+- **Oracle ceiling +14.7 pts** (0.544, *above* the en-en 0.510 baseline): if you could
+  pick the right translation per item, most of the en→x drop disappears. So a large
+  share of the degradation is **translation-phrasing-dependent, not concept failure** —
+  the model often knows the answer under *some* phrasing.
+- The oracle is an **upper bound** (three tries at a 5-way choice exploits chance), so
+  read the **vote→oracle gap** as recoverable headroom that no simple combiner captures.
+  (`results/translation_ensemble.csv`, `scripts/translation_ensemble.py`.)
+
 ## 5. Training dynamics (encoders)
 
 ![training](figures/fig8_training_devacc.png)
