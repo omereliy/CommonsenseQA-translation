@@ -31,6 +31,9 @@ results/**
 checkpoints/**
 cluster/logs/**
 *.sif
+# task experiment payloads (derived; recipe = code + CSVs + manifests)
+tasks/**/data/**
+tasks/**/results/**/outputs.jsonl
 # keep the directory skeletons and any small committed fixtures
 !data/raw/.gitkeep
 !data/translated/.gitkeep
