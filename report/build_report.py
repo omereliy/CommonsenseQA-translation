@@ -493,6 +493,56 @@ def fig_ensemble(summary):
     return False
 
 
+def fig_translator_scaling(summary):
+    """Isolate the NLLB 600M -> 3.3B comparison: stronger MT, same en-x drop."""
+    pairs = [("xlmr-ep6", "XLM-R (ft)"), ("mbert-ep6", "mBERT (ft)")]
+    series = [("-nllb", "NLLB-600M", "#DD8452"), ("-nllb33", "NLLB-3.3B", "#55A868")]
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4.6), sharey=True)
+    ok = False
+    w = 0.34
+    ens = [e for e in (en_acc(summary, m) for m, _ in pairs) if e]
+    top = max([0.46] + ens) + 0.03  # shared y-range must fit the higher en-en line
+    for ax, (mdl, name) in zip(axes, pairs):
+        x = range(len(LANGS))
+        vals_by = {}
+        for j, (suf, sname, col) in enumerate(series):
+            vals = []
+            for lang in LANGS:
+                c = _acc_lang(summary, mdl, f"{lang}{suf}")
+                vals.append(c[0] if c else 0)
+            vals_by[suf] = vals
+            if any(vals):
+                ok = True
+            bars = ax.bar([xi + (j - 0.5) * w for xi in x], vals, w, color=col, label=sname)
+            for b, v in zip(bars, vals):
+                if v:
+                    ax.text(b.get_x() + b.get_width() / 2, v + 0.004, f"{v:.3f}",
+                            ha="center", fontsize=8)
+        # delta annotation (3.3B - 600M), in points
+        for k, lang in enumerate(LANGS):
+            d = (vals_by["-nllb33"][k] - vals_by["-nllb"][k]) * 100
+            ax.text(k, 0.305, f"Δ{d:+.1f}", ha="center", fontsize=8.5,
+                    color="#333", weight="bold")
+        en = en_acc(summary, mdl)
+        if en:
+            ax.axhline(en, ls="--", lw=1, color="#333")
+            ax.text(len(LANGS) - 0.5, en + 0.004, f"en-en {en:.3f}", ha="right",
+                    fontsize=8, color="#333")
+        ax.set_xticks(list(x))
+        ax.set_xticklabels([LANG_NAME[l] for l in LANGS])
+        ax.set_ylim(0.30, top)
+        ax.set_title(name, fontsize=11)
+    axes[0].set_ylabel("en-x accuracy")
+    axes[-1].legend(fontsize=9, loc="upper right")
+    fig.suptitle("Scaling the translator 5.5× (NLLB 600M → 3.3B) leaves the en→x drop unchanged",
+                 weight="bold")
+    if ok:
+        savefig(fig, "fig12_nllb_scaling.png")
+        return True
+    plt.close(fig)
+    return False
+
+
 def fig_training():
     fig, ax = plt.subplots(figsize=(7.5, 4.6))
     for name, curve in DEV_ACC.items():
@@ -620,7 +670,7 @@ def examples_md(rows, lang):
 
 
 def build_readme(summary, flips, agree, models, has_sources, ex_rows, ex_lang,
-                 ts, has_agreement, has_ensemble, has_by_translator):
+                 ts, has_agreement, has_ensemble, has_by_translator, has_nllb_scaling):
     n_models = summary.model.nunique() if len(summary) else 0
     haiku_en = en_acc(summary, "haiku-4.5-subagent")
     xlmr_en = en_acc(summary, "xlmr-ep6")
@@ -735,6 +785,8 @@ en-x: ru 0.402→0.416, es 0.394→0.396, he 0.374→0.363; all still ~10 pts be
 much stronger MT model would close the gap — it doesn't. This is direct evidence the
 effect is **cross-lingual concept grounding, not MT error**.
 
+{"![nllb-scaling](figures/fig12_nllb_scaling.png)" if has_nllb_scaling else ""}
+
 The same accuracy-by-condition view (Fig 1's layout) per translator — en-en is
 translator-independent, and the non-Google panels are encoder-only (only XLM-R/mBERT
 were run on NLLB/Opus/Consensus):
@@ -813,12 +865,13 @@ def main():
     has_sources = fig_sources(summary)
     has_ensemble = fig_ensemble(summary)
     has_by_translator = fig_accuracy_by_translator(summary)
+    has_nllb_scaling = fig_translator_scaling(summary)
     fig_training()
     ex_lang = "he"
     ex_rows = examples("haiku-4.5-subagent", ex_lang, k=3)
     print("writing README...")
     build_readme(summary, flips, agree, models, has_sources, ex_rows, ex_lang,
-                 ts, has_agreement, has_ensemble, has_by_translator)
+                 ts, has_agreement, has_ensemble, has_by_translator, has_nllb_scaling)
     print("done.")
 
 

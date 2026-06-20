@@ -121,6 +121,8 @@ en-x: ru 0.402→0.416, es 0.394→0.396, he 0.374→0.363; all still ~10 pts be
 much stronger MT model would close the gap — it doesn't. This is direct evidence the
 effect is **cross-lingual concept grounding, not MT error**.
 
+![nllb-scaling](figures/fig12_nllb_scaling.png)
+
 The same accuracy-by-condition view (Fig 1's layout) per translator — en-en is
 translator-independent, and the non-Google panels are encoder-only (only XLM-R/mBERT
 were run on NLLB/Opus/Consensus):
