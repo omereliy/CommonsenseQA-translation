@@ -1,0 +1,20 @@
+{
+  "condition": "en-x",
+  "decoding": {
+    "argmax": true,
+    "type": "mc-head"
+  },
+  "extra": {
+    "accuracy": 0.3751,
+    "n": 1221,
+    "think": "na",
+    "unparsed": 0
+  },
+  "language": "es-consensus",
+  "model": {
+    "id": "mbert-ep6",
+    "snapshot": "finetuned-en"
+  },
+  "prompt_template_hash": "dfe800c7d5c2",
+  "variant_hash": "54b5da83386c"
+}

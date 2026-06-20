@@ -1,0 +1,24 @@
+{
+  "condition": "en-x",
+  "decoding": {
+    "batch_size": 50,
+    "deterministic": false,
+    "model": "claude-haiku-4-5",
+    "note": "subscription subagent; temperature not pinned",
+    "provider": "claude-code-subagent",
+    "temperature": null
+  },
+  "extra": {
+    "accuracy": 0.8174,
+    "n": 1221,
+    "think": "na",
+    "unparsed": 1
+  },
+  "language": "he",
+  "model": {
+    "id": "haiku-4.5-subagent",
+    "snapshot": "claude-haiku-4-5"
+  },
+  "prompt_template_hash": "7653853cbe62",
+  "variant_hash": "4829ecf7cdde"
+}

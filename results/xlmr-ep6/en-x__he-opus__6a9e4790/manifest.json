@@ -1,0 +1,20 @@
+{
+  "condition": "en-x",
+  "decoding": {
+    "argmax": true,
+    "type": "mc-head"
+  },
+  "extra": {
+    "accuracy": 0.371,
+    "n": 1221,
+    "think": "na",
+    "unparsed": 0
+  },
+  "language": "he-opus",
+  "model": {
+    "id": "xlmr-ep6",
+    "snapshot": "finetuned-en"
+  },
+  "prompt_template_hash": "244ec14d2599",
+  "variant_hash": "6a9e4790e7cf"
+}
