@@ -244,6 +244,35 @@ def fig_flip(flips, models):
     savefig(fig, "fig3_flip_rate.png")
 
 
+def fig_away(flips, models):
+    """fig3 layout, but bars are the AWAY-from-gold rate (en-en right -> en-x wrong)."""
+    x = range(len(models))
+    w = 0.25
+    fig, ax = plt.subplots(figsize=(9.5, 5))
+    for j, lang in enumerate(LANGS):
+        vals, ps = [], []
+        for m in models:
+            r = flips[(flips.model == m) & (flips.lang == lang)]
+            if len(r):
+                vals.append(int(r.away_gold.iloc[0]) / int(r.n.iloc[0]))
+                ps.append(float(r.mcnemar_p.iloc[0]))
+            else:
+                vals.append(0); ps.append(None)
+        bars = ax.bar([xi + (j - 1) * w for xi in x], vals, w,
+                      color=LANG_COLOR[lang], label=LANG_NAME[lang])
+        for b, v, p in zip(bars, vals, ps):
+            if v:
+                ax.text(b.get_x() + b.get_width() / 2, v + 0.004, stars(p),
+                        ha="center", fontsize=9, color="#333")
+    ax.set_xticks(list(x))
+    ax.set_xticklabels([DISPLAY[m] for m in models])
+    ax.set_ylabel("away-from-gold rate   (en-en correct → en-x wrong)")
+    ax.set_title("Translation-induced errors, en-en → en-x   (* p<.05  ** p<.01  *** p<.001)",
+                 weight="bold")
+    ax.legend(title="answer language", fontsize=9)
+    savefig(fig, "fig15_away_from_gold.png")
+
+
 def fig_flip_signed(flips, models):
     """fig3 layout (x=models, grouped by lang) split into BOTH gold directions:
     toward-gold rate upward (helped), away-gold rate downward (hurt)."""
@@ -789,6 +818,11 @@ Flip rate (`*` p<.05 `**` p<.01 `***` p<.001, McNemar):
 
 {flip_table(flips, models)}
 
+The same view restricted to the harmful direction — **away-from-gold rate** (items the
+model got right in English but wrong once only the choices were translated):
+
+![away from gold](figures/fig15_away_from_gold.png)
+
 ![flip direction signed](figures/fig13_flip_signed.png)
 
 ![flip direction](figures/fig4_flip_direction.png)
@@ -928,6 +962,7 @@ def main():
     fig_accuracy(summary, models)
     fig_ladder(summary, models)
     fig_flip(flips, models)
+    fig_away(flips, models)
     fig_flip_signed(flips, models)
     fig_direction(flips, models)
     fig_flip_vs_capability(summary, flips, models)

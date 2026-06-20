@@ -66,6 +66,11 @@ Flip rate (`*` p<.05 `**` p<.01 `***` p<.001, McNemar):
 | Qwen3.5 4B | 0.230*** | 0.259*** | 0.276*** |
 | Haiku 4.5 | 0.128*** | 0.131* | 0.149*** |
 
+The same view restricted to the harmful direction — **away-from-gold rate** (items the
+model got right in English but wrong once only the choices were translated):
+
+![away from gold](figures/fig15_away_from_gold.png)
+
 ![flip direction signed](figures/fig13_flip_signed.png)
 
 ![flip direction](figures/fig4_flip_direction.png)
