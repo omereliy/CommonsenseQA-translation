@@ -29,7 +29,8 @@ from collections import Counter
 from pathlib import Path
 
 LANGS = ["ru", "es", "he"]
-SUFFIX = {"google": "", "nllb": "-nllb", "opus": "-opus", "consensus": "-consensus"}
+SUFFIX = {"google": "", "nllb": "-nllb", "nllb33": "-nllb33",
+          "opus": "-opus", "consensus": "-consensus"}
 
 
 def load_run(results: Path, model: str, lang: str, source: str) -> dict[str, tuple[str, str]]:

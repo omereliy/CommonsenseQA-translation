@@ -114,6 +114,13 @@ The degradation ordering is **translator-invariant**: Google, NLLB, Opus and the
 consensus set all produce the same pattern for the encoders, so the effect is not an
 artifact of one translation backend — it separates concept-grounding from MT noise.
 
+**Stronger translation doesn't help.** Scaling the open translator **5.5×** (NLLB
+distilled-600M → full **3.3B**) leaves the drop essentially unchanged (xlmr-ep6
+en-x: ru 0.402→0.416, es 0.394→0.396, he 0.374→0.363; all still ~10 pts below the
+0.510 English baseline). If the degradation were driven by translation *quality*, a
+much stronger MT model would close the gap — it doesn't. This is direct evidence the
+effect is **cross-lingual concept grounding, not MT error**.
+
 The same accuracy-by-condition view (Fig 1's layout) per translator — en-en is
 translator-independent, and the non-Google panels are encoder-only (only XLM-R/mBERT
 were run on NLLB/Opus/Consensus):

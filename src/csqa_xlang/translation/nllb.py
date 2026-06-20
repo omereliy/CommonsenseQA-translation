@@ -23,12 +23,13 @@ class NLLBTranslator:
     name = "nllb"
 
     def __init__(self, cache_dir: str | Path, model: str = "facebook/nllb-200-distilled-600M",
-                 num_beams: int = 4, max_length: int = 64):
+                 num_beams: int = 4, max_length: int = 64, cache_tag: str = "nllb"):
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.model_name = model
         self.num_beams = num_beams
         self.max_length = max_length
+        self.cache_tag = cache_tag  # cache filename prefix; distinct per model size
         self._tok = None
         self._model = None
         self._device = None
@@ -39,11 +40,16 @@ class NLLBTranslator:
         import torch
         from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
         self._device = "cuda" if torch.cuda.is_available() else "cpu"
+        # fp16 on GPU so the 3.3B (~13GB fp32) fits a 12GB card (~6.6GB fp16);
+        # fp32 on CPU (half-precision ops are slow/unsupported there).
+        dtype = torch.float16 if self._device == "cuda" else torch.float32
         self._tok = AutoTokenizer.from_pretrained(self.model_name)
-        self._model = AutoModelForSeq2SeqLM.from_pretrained(self.model_name).to(self._device).eval()
+        self._model = AutoModelForSeq2SeqLM.from_pretrained(
+            self.model_name, torch_dtype=dtype, low_cpu_mem_usage=True
+        ).to(self._device).eval()
 
     def _cache_path(self, tgt: str) -> Path:
-        return self.cache_dir / f"nllb_{tgt}.json"
+        return self.cache_dir / f"{self.cache_tag}_{tgt}.json"
 
     def _load_cache(self, tgt: str) -> dict[str, str]:
         p = self._cache_path(tgt)

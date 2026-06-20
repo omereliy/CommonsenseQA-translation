@@ -28,7 +28,14 @@ from csqa_xlang.translation import NLLBTranslator, OpusMTTranslator, translate_c
 from csqa_xlang.variants import build_variant, write_variant
 
 LANGS = ["ru", "es", "he"]
-BACKENDS = {"nllb": NLLBTranslator, "opus": OpusMTTranslator}
+# name -> factory(cache_dir) -> translator. nllb33 is the full NLLB-200-3.3B
+# (fp16) with its own cache tag so it doesn't collide with the distilled 600M.
+BACKENDS = {
+    "nllb": lambda cd: NLLBTranslator(cache_dir=cd),
+    "nllb33": lambda cd: NLLBTranslator(cache_dir=cd, model="facebook/nllb-200-3.3B",
+                                        cache_tag="nllb33"),
+    "opus": lambda cd: OpusMTTranslator(cache_dir=cd),
+}
 
 
 def main() -> None:
@@ -44,7 +51,7 @@ def main() -> None:
     tdir = Path(args.translated_root) / args.backend
     tdir.mkdir(parents=True, exist_ok=True)
     vdir = Path(args.variants_dir)
-    translator = BACKENDS[args.backend](cache_dir=Path(args.translated_root) / "_cache")
+    translator = BACKENDS[args.backend](Path(args.translated_root) / "_cache")
     print(f"{len(en_items)} English items; {args.backend} -> {LANGS}")
 
     for lang in LANGS:

@@ -1,0 +1,34 @@
+# Eval config for the NLLB-200-3.3B translation set (full NLLB, fp16, local GPU).
+# A higher-quality open translator than the distilled 600M — tests whether the
+# en->x degradation shrinks with better translation (concept-grounding vs MT noise).
+# Build it first:
+#   python -m scripts.build_mt --backend nllb33
+# then eval a trained encoder:
+#   python -m scripts.run_eval --arm xlmr  --ckpt checkpoints/xlmr-csqa-epoch6  --model-tag xlmr-ep6  --config configs/nllb33.yaml
+#   python -m scripts.run_eval --arm mbert --ckpt checkpoints/mbert-csqa-epoch6 --model-tag mbert-ep6 --config configs/nllb33.yaml
+
+seed: 42
+
+dataset:
+  name: tau/commonsense_qa
+  split: validation
+
+languages:
+  source: en
+  targets: [ru-nllb33, es-nllb33, he-nllb33]
+
+conditions:
+  - en-x
+
+translation:
+  backend: nllb33
+
+eval:
+  answer_format: letter
+  decoding:
+    temperature: 0
+
+paths:
+  data_translated: data/translated/nllb33
+  data_variants: data/variants
+  results: results

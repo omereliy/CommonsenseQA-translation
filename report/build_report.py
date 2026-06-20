@@ -155,9 +155,14 @@ def _acc_lang(summary, model, langkey):
 
 def fig_accuracy_by_translator(summary):
     """fig1 layout (per-model, en-en + en-x by language) replicated per translator."""
-    trans = [("", "Google"), ("-nllb", "NLLB"), ("-opus", "Opus"), ("-consensus", "Consensus")]
+    trans = [("", "Google"), ("-nllb", "NLLB-600M"), ("-nllb33", "NLLB-3.3B"),
+             ("-opus", "Opus"), ("-consensus", "Consensus")]
     conds = ["en", "ru", "es", "he"]
-    fig, axes = plt.subplots(2, 2, figsize=(13, 8.5), sharey=True)
+    ncol = 3
+    nrow = -(-len(trans) // ncol)  # ceil
+    fig, axes = plt.subplots(nrow, ncol, figsize=(6.2 * ncol, 4.2 * nrow), sharey=True)
+    for extra in axes.flat[len(trans):]:
+        extra.set_visible(False)
     any_panel = False
     for ax, (suf, tname) in zip(axes.flat, trans):
         # models that actually have en-x data under this translator
@@ -326,12 +331,14 @@ def fig_heatmap(summary, models):
 def fig_sources(summary):
     """Translator robustness: xlmr-ep6 / mbert-ep6 accuracy across Google/NLLB/Opus."""
     pairs = [("xlmr-ep6", "XLM-R (ft)"), ("mbert-ep6", "mBERT (ft)")]
-    srcs = [("", "Google"), ("-nllb", "NLLB"), ("-opus", "Opus"), ("-consensus", "Consensus")]
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4.4), sharey=True)
+    srcs = [("", "Google"), ("-nllb", "NLLB-600M"), ("-nllb33", "NLLB-3.3B"),
+            ("-opus", "Opus"), ("-consensus", "Consensus")]
+    nb = len(srcs)
+    w = 0.8 / nb
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4.4), sharey=True)
     ok = False
     for ax, (mdl, name) in zip(axes, pairs):
         x = range(len(LANGS))
-        w = 0.2
         for j, (suf, sname) in enumerate(srcs):
             vals = []
             for lang in LANGS:
@@ -339,13 +346,13 @@ def fig_sources(summary):
                 vals.append(float(r.accuracy.iloc[0]) if len(r) else 0)
             if any(vals):
                 ok = True
-            ax.bar([xi + (j - 1.5) * w for xi in x], vals, w, label=sname)
+            ax.bar([xi + (j - (nb - 1) / 2) * w for xi in x], vals, w, label=sname)
         ax.set_xticks(list(x))
         ax.set_xticklabels([LANG_NAME[l] for l in LANGS])
         ax.set_title(name, fontsize=11)
         ax.set_ylim(0.30, 0.46)
     axes[0].set_ylabel("en-x accuracy")
-    axes[-1].legend(title="translator", fontsize=9)
+    axes[-1].legend(title="translator", fontsize=8.5)
     fig.suptitle("Robustness: the en→x drop replicates across translators and a majority-vote consensus",
                  weight="bold")
     if ok:
@@ -720,6 +727,13 @@ else Google breaks the tie; ties broken on 16–27% of choices):
 The degradation ordering is **translator-invariant**: Google, NLLB, Opus and the
 consensus set all produce the same pattern for the encoders, so the effect is not an
 artifact of one translation backend — it separates concept-grounding from MT noise.
+
+**Stronger translation doesn't help.** Scaling the open translator **5.5×** (NLLB
+distilled-600M → full **3.3B**) leaves the drop essentially unchanged (xlmr-ep6
+en-x: ru 0.402→0.416, es 0.394→0.396, he 0.374→0.363; all still ~10 pts below the
+0.510 English baseline). If the degradation were driven by translation *quality*, a
+much stronger MT model would close the gap — it doesn't. This is direct evidence the
+effect is **cross-lingual concept grounding, not MT error**.
 
 The same accuracy-by-condition view (Fig 1's layout) per translator — en-en is
 translator-independent, and the non-Google panels are encoder-only (only XLM-R/mBERT
