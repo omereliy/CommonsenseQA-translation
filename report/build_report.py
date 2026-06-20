@@ -769,8 +769,9 @@ choices/lang):
 
 Three independent MT systems (Google / NLLB / Opus) agree on the exact word only
 **35–48%** of the time — the translations are genuinely diverse. Yet model accuracy
-is stable across them, and across a **majority-vote consensus** set (≥2 of 3 agree,
-else Google breaks the tie; ties broken on 16–27% of choices):
+is stable across them, and across a **majority-vote consensus** set (Google +
+NLLB-3.3B + Opus; ≥2 of 3 agree, else Google breaks the tie; ties broken on 17–25%
+of choices — fewer than with the weaker 600M, which agreed less):
 
 {"![sources](figures/fig7_translation_sources.png)" if has_sources else "_(translation-source runs not present)_"}
 
