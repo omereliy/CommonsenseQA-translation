@@ -66,10 +66,36 @@ Flip rate (`*` p<.05 `**` p<.01 `***` p<.001, McNemar):
 | Qwen3.5 4B | 0.230*** | 0.259*** | 0.276*** |
 | Haiku 4.5 | 0.128*** | 0.131* | 0.149*** |
 
+![flip direction signed](figures/fig13_flip_signed.png)
+
 ![flip direction](figures/fig4_flip_direction.png)
 
 Flips are **net away from gold** — translating the choices hurts more than it helps,
 which is what drives the accuracy drop.
+
+**Significance (McNemar, paired on the same items).** The en-en→en-x accuracy change
+is tested with McNemar's test on the discordant pairs: **b** = items en-en got right
+but en-x got wrong, **c** = en-en wrong but en-x right; continuity-corrected
+χ² = (|b−c|−1)²/(b+c), df=1. Every condition is significant (`*` p<.05 `**` p<.01
+`***` p<.001), with **b ≫ c** throughout — far more predictions break than get fixed:
+
+| model | lang | b: en✓→x✗ | c: en✗→x✓ | χ²_cc | p | sig |
+|---|---|---|---|---|---|---|
+| mBERT (ft) | ru | 255 | 172 | 15.7 | 7.2e-05 | *** |
+| mBERT (ft) | es | 259 | 165 | 20.4 | 6.3e-06 | *** |
+| mBERT (ft) | he | 299 | 161 | 40.8 | 1.7e-10 | *** |
+| XLM-R (ft) | ru | 260 | 155 | 26.1 | 3.3e-07 | *** |
+| XLM-R (ft) | es | 269 | 144 | 37.2 | 1.0e-09 | *** |
+| XLM-R (ft) | he | 312 | 126 | 78.1 | 9.6e-19 | *** |
+| Qwen3.5 0.8B | ru | 175 | 125 | 8.0 | 4.7e-03 | ** |
+| Qwen3.5 0.8B | es | 208 | 95 | 41.4 | 1.2e-10 | *** |
+| Qwen3.5 0.8B | he | 261 | 109 | 61.6 | 4.2e-15 | *** |
+| Qwen3.5 4B | ru | 161 | 77 | 28.9 | 7.4e-08 | *** |
+| Qwen3.5 4B | es | 184 | 87 | 34.0 | 5.5e-09 | *** |
+| Qwen3.5 4B | he | 186 | 95 | 28.8 | 7.9e-08 | *** |
+| Haiku 4.5 | ru | 98 | 47 | 17.2 | 3.3e-05 | *** |
+| Haiku 4.5 | es | 86 | 60 | 4.3 | 3.9e-02 | * |
+| Haiku 4.5 | he | 106 | 61 | 11.6 | 6.6e-04 | *** |
 
 ## 3. Strength story — concept-grounding scales with capability
 

@@ -244,6 +244,40 @@ def fig_flip(flips, models):
     savefig(fig, "fig3_flip_rate.png")
 
 
+def fig_flip_signed(flips, models):
+    """fig3 layout (x=models, grouped by lang) split into BOTH gold directions:
+    toward-gold rate upward (helped), away-gold rate downward (hurt)."""
+    x = range(len(models))
+    w = 0.26
+    fig, ax = plt.subplots(figsize=(10.5, 5.6))
+    for j, lang in enumerate(LANGS):
+        tow, awa = [], []
+        for m in models:
+            r = flips[(flips.model == m) & (flips.lang == lang)]
+            if len(r):
+                n = int(r.n.iloc[0])
+                tow.append(int(r.toward_gold.iloc[0]) / n)
+                awa.append(int(r.away_gold.iloc[0]) / n)
+            else:
+                tow.append(0); awa.append(0)
+        xs = [xi + (j - 1) * w for xi in x]
+        ax.bar(xs, tow, w, color="#55A868", edgecolor="white", linewidth=0.5,
+               label="toward gold (helped)" if j == 0 else None)
+        ax.bar(xs, [-a for a in awa], w, color="#C44E52", edgecolor="white", linewidth=0.5,
+               label="away from gold (hurt)" if j == 0 else None)
+        for xi, t, a in zip(xs, tow, awa):
+            ax.text(xi, -a - 0.006, lang, ha="center", va="top", fontsize=7, color="#666")
+            ax.plot(xi, t - a, "k_", ms=9, mew=1.6)  # net = toward - away
+    ax.axhline(0, color="#333", lw=0.9)
+    ax.set_xticks(list(x))
+    ax.set_xticklabels([DISPLAY[m] for m in models])
+    ax.set_ylabel("fraction of items   (↑ flipped to gold / ↓ flipped off gold)")
+    ax.set_title("Flip direction by model & language — translating choices hurts more than it helps\n"
+                 "(black tick = net = toward − away; ru/es/he per model)", weight="bold")
+    ax.legend(loc="upper right", fontsize=9)
+    savefig(fig, "fig13_flip_signed.png")
+
+
 def fig_direction(flips, models):
     fig, axes = plt.subplots(1, 3, figsize=(11.5, 4.2), sharey=True)
     for ax, lang in zip(axes, LANGS):
@@ -656,6 +690,26 @@ def translation_table(ts, agree):
     return "\n".join(lines)
 
 
+def mcnemar_table(flips, models):
+    """Worked McNemar significance of en-en -> en-x, per model/lang."""
+    head = ("| model | lang | b: en✓→x✗ | c: en✗→x✓ | χ²_cc | p | sig |\n"
+            "|---|---|---|---|---|---|---|")
+    lines = [head]
+    for m in models:
+        for lang in LANGS:
+            r = flips[(flips.model == m) & (flips.lang == lang)]
+            if not len(r):
+                continue
+            b = int(r.away_gold.iloc[0])   # en-en correct, en-x wrong
+            c = int(r.toward_gold.iloc[0])  # en-en wrong, en-x correct
+            n = b + c
+            chi2 = (abs(b - c) - 1) ** 2 / n if n else 0.0
+            p = math.erfc(math.sqrt(chi2 / 2)) if chi2 else 1.0
+            lines.append(f"| {DISPLAY[m]} | {lang} | {b} | {c} | {chi2:.1f} | "
+                         f"{p:.1e} | {stars(p) or 'ns'} |")
+    return "\n".join(lines)
+
+
 def examples_md(rows, lang):
     if not rows:
         return "_(no cached predictions found for examples)_"
@@ -734,10 +788,20 @@ Flip rate (`*` p<.05 `**` p<.01 `***` p<.001, McNemar):
 
 {flip_table(flips, models)}
 
+![flip direction signed](figures/fig13_flip_signed.png)
+
 ![flip direction](figures/fig4_flip_direction.png)
 
 Flips are **net away from gold** — translating the choices hurts more than it helps,
 which is what drives the accuracy drop.
+
+**Significance (McNemar, paired on the same items).** The en-en→en-x accuracy change
+is tested with McNemar's test on the discordant pairs: **b** = items en-en got right
+but en-x got wrong, **c** = en-en wrong but en-x right; continuity-corrected
+χ² = (|b−c|−1)²/(b+c), df=1. Every condition is significant (`*` p<.05 `**` p<.01
+`***` p<.001), with **b ≫ c** throughout — far more predictions break than get fixed:
+
+{mcnemar_table(flips, models)}
 
 ## 3. Strength story — concept-grounding scales with capability
 
@@ -858,6 +922,7 @@ def main():
     fig_accuracy(summary, models)
     fig_ladder(summary, models)
     fig_flip(flips, models)
+    fig_flip_signed(flips, models)
     fig_direction(flips, models)
     fig_flip_vs_capability(summary, flips, models)
     fig_heatmap(summary, models)
