@@ -724,7 +724,8 @@ def examples_md(rows, lang):
 
 
 def build_readme(summary, flips, agree, models, has_sources, ex_rows, ex_lang,
-                 ts, has_agreement, has_ensemble, has_by_translator, has_nllb_scaling):
+                 ts, has_agreement, has_ensemble, has_by_translator, has_nllb_scaling,
+                 has_hebrew=False):
     n_models = summary.model.nunique() if len(summary) else 0
     haiku_en = en_acc(summary, "haiku-4.5-subagent")
     xlmr_en = en_acc(summary, "xlmr-ep6")
@@ -829,6 +830,11 @@ choices/lang):
 - **Hebrew is hardest to translate**: shortest choices, lowest cross-MT agreement, and
   Opus-MT additionally emits Latin-script hallucinations on **4.3%** of Hebrew cells.
 
+Clean (3-MT consensus) vs broken Hebrew translations — Google (the main set) is largely
+clean; the worst breakage is Opus on Hebrew (`scripts/hebrew_gallery.py`):
+
+{"![hebrew gallery](figures/fig14_hebrew_translations.png)" if has_hebrew else ""}
+
 {"![agreement](figures/fig9_translation_agreement.png)" if has_agreement else ""}
 
 Three independent MT systems (Google / NLLB / Opus) agree on the exact word only
@@ -927,6 +933,13 @@ def main():
     fig_flip_vs_capability(summary, flips, models)
     fig_heatmap(summary, models)
     ts = translation_stats()
+    try:  # Hebrew gallery needs python-bidi; best-effort so it can't break the report
+        from scripts.hebrew_gallery import main as _heb_gallery
+        _heb_gallery()
+        has_hebrew = True
+    except Exception as e:
+        print(f"  (skipped Hebrew gallery: {e})")
+        has_hebrew = (FIG / "fig14_hebrew_translations.png").exists()
     has_agreement = fig_agreement(agree)
     has_sources = fig_sources(summary)
     has_ensemble = fig_ensemble(summary)
@@ -937,7 +950,8 @@ def main():
     ex_rows = examples("haiku-4.5-subagent", ex_lang, k=3)
     print("writing README...")
     build_readme(summary, flips, agree, models, has_sources, ex_rows, ex_lang,
-                 ts, has_agreement, has_ensemble, has_by_translator, has_nllb_scaling)
+                 ts, has_agreement, has_ensemble, has_by_translator, has_nllb_scaling,
+                 has_hebrew)
     print("done.")
 
 

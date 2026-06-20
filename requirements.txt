@@ -25,3 +25,6 @@ sentencepiece>=0.2       # XLM-R tokenizer
 # Dev
 pytest>=8.0
 ruff>=0.4
+
+# Optional: RTL Hebrew rendering for scripts.hebrew_gallery (report fig14)
+python-bidi>=0.6

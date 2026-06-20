@@ -127,6 +127,11 @@ choices/lang):
 - **Hebrew is hardest to translate**: shortest choices, lowest cross-MT agreement, and
   Opus-MT additionally emits Latin-script hallucinations on **4.3%** of Hebrew cells.
 
+Clean (3-MT consensus) vs broken Hebrew translations — Google (the main set) is largely
+clean; the worst breakage is Opus on Hebrew (`scripts/hebrew_gallery.py`):
+
+![hebrew gallery](figures/fig14_hebrew_translations.png)
+
 ![agreement](figures/fig9_translation_agreement.png)
 
 Three independent MT systems (Google / NLLB / Opus) agree on the exact word only
