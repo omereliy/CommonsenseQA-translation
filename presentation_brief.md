@@ -1,0 +1,215 @@
+# Presentation Brief — *Do LLMs Choose Concepts or English Words?*
+
+**Purpose of this file:** feed it to the Claude agent in PowerPoint to generate the slide deck. It contains the full narrative, slide-by-slide content with the real numbers, chart specs, and speaker notes. Everything needed to build the deck is here — you do **not** need the paper PDF or any external figure files.
+
+> **Source of truth:** the AAAI paper draft (`anonymous-submission-latex-2026.tex`). It supersedes the older `RESULTS.md` (which only had Qwen models). Use the numbers in this brief.
+
+---
+
+## How to build this deck (instructions to the PPT agent)
+
+- **Audience / venue:** BGU *Computational Semantics & NLU* course project talk; academic, technically literate. Conference-style.
+- **Format:** **20-min talk + 5-min Q&A.** Two acts, per the course guidelines (both are graded — don't shortchange Act 1):
+  - **Act 1 — Research question & importance (~5 min):** slides **1–3**.
+  - **Act 2 — Data, experiments, evaluation, analysis & results so far (~15 min):** slides **4–15**.
+- **Budget ≈1–1.5 min/slide;** 15 slides fills 20 min comfortably. At this length **keep all `[EXT]` slides** — you have the time. `[CORE]`/`[EXT]` tags only matter if you run long: drop `[EXT]` (slides 10, 12, 13) first.
+- **Framing:** "results so far" — present as what we did and found to date, not a finished publication.
+- **Figures: leave a titled placeholder — do NOT build charts.** For every chart slide, insert an empty image placeholder box sized to the content area, with a **bold title/caption** (e.g. *Figure: Accuracy by condition*) and the source filename in small grey text. The team inserts the real figure images afterward. The data tables in this brief are **reference for captions only** — don't render them as the slide's main visual unless a slide says "keep as table".
+- **One idea per slide.** Title states the takeaway as a claim (e.g. "Translating the choices lowers accuracy everywhere"), not a label ("Results").
+- **Consistent model color-coding across every chart** (capability ladder, weak→strong). Use the same color for the same model everywhere:
+  - mBERT (ft) → muted red · XLM-R (ft) → orange · Qwen3.5 0.8B → yellow-green · Qwen3.5 4B → teal · Haiku 4.5 → deep blue.
+- **Language order everywhere:** en-en, then ru, es, he (he last — it's the headline weak spot).
+- **Design:** clean light theme, one accent color, sans-serif (Inter/Helvetica), generous whitespace, no clip-art. Number every data point; round to the values shown here. Footer: short paper title + repo link.
+- **Accessibility:** color + pattern/label redundancy on charts; min 18pt body text.
+
+**The one-sentence throughline (keep every slide serving this):** *A correct CommonsenseQA answer could mean the model grounded the concept or just recognized the English word — so we translate only the answer choices and watch how often the prediction flips; it flips a lot, net toward wrong, significantly, everywhere — but less as models get stronger, and not because of translation quality.*
+
+---
+
+## Slide-by-slide
+
+### 1. Title `[CORE]`
+- **Do LLMs Choose Concepts or English Words?**
+- Subtitle: *An answer-side-only translation probe of cross-lingual concept grounding in CommonsenseQA.*
+- Authors: Daniel Koyfman, Omer Eliyahu, Mark Feldman, Tal Malul
+- BGU — Computational Semantics & NLU, 2025–2026 · Code: github.com/omereliy/CommonsenseQA-translation
+- *Notes:* One line of hook out loud: "When a model gets a commonsense question right, does it know the idea — or just the English word?"
+
+> **— ACT 1: Research question & importance (~5 min, slides 1–3) —**
+
+### 2. The question — and why it matters `[CORE]`
+- Multiple-choice benchmarks score *only* whether the gold letter is picked.
+- A correct pick conflates two abilities: recovering the **concept** vs. recognizing the English **wording**.
+- Because question *and* choices are English, a model can win on lexical overlap + English priors — no language-independent grounding required.
+- **Why it matters (importance — spend time here, it's graded):**
+  - If we can't separate the two, **benchmark accuracy overstates understanding** — a high CSQA score may be partly English string-matching, not commonsense.
+  - **Multilingual reliability:** a model right about a concept in English may fail on the *same* concept in another language — a deployment risk.
+  - **Method contribution:** the flip rate is a **cheap, controlled diagnostic** reusable on any multiple-choice benchmark.
+  - **Course theme:** does meaning live in the **concept** or the **string**? — the heart of computational semantics.
+- *Visual:* a single CSQA item with its 5 English choices; highlight that "right letter" hides "why".
+- *Notes:* This is the motivation + stakes. ~2 min. Don't show results yet.
+
+### 3. The idea: translate only the answers `[CORE]`
+- Keep the **question in English**; translate **only the 5 choices** into Russian / Spanish / Hebrew.
+- Question (and the reasoning required) is held fixed — the *only* variable is the surface language of the candidate concepts.
+- Model emits a **letter A–E**, never answer text → a change of decision can't be a string-matching artifact across scripts.
+- **Flip** = prediction changes when only the choice language changes = direct measure of English-wording dependence.
+- *Figure placeholder:* **The probe** — same item twice (English choices vs. Hebrew choices, question identical), arrow showing a prediction A → C flip. Titled empty placeholder; team inserts.
+- *Notes:* This is the core method slide. Emphasize "only the answers" and "letter, not text".
+
+> **— ACT 2: Data, experiments, evaluation, analysis & results so far (~15 min, slides 4–15) —**
+
+### 4. Why CommonsenseQA is the right testbed `[CORE]`
+- Each choice is a **single self-contained ConceptNet concept** (1–3 word noun phrase) → translates as a clean unit.
+- Distractors come from the **same relational neighborhood** as the gold → semantically close, so you must ground the *specific* concept.
+- Data is **natively English** → the English-wording prior is present by construction; no native target-language signal to lean on.
+- vs. prior work: X-CSQA and mCSQA translate the **whole item** → can't separate answer grounding from question comprehension. Ours moves a single variable.
+- *Notes:* This doubles as related-work positioning. The contrast with whole-item translation is the novelty.
+
+### 5. Definitions & how we measure `[CORE]`
+- **Conditions** (Q-lang–A-lang):
+
+  | Condition | Question | Choices |
+  |---|---|---|
+  | en-en | English | English (baseline) |
+  | **en-x** | **English** | **Target X (the probe)** |
+  | x-x | X | X (extension) |
+  | x-en | X | English (extension) |
+
+- **Flip rate** = fraction of items whose predicted letter changes en-en → en-x. Split by direction: **toward gold** (wrong→right) vs **away from gold** (right→wrong).
+- **Significance:** McNemar's test on paired items (same items both conditions). Accuracies carry Wilson 95% CIs.
+- *Notes:* Define "away from gold" clearly — it's the signature of wording dependence later.
+
+### 6. Experimental setup `[CORE]`
+- **Models span a capability ladder** (object of study = each model's *own* en→X drop, not absolute accuracy):
+  - Fine-tuned encoders (lower anchor, English-only fine-tune, zero-shot on translated choices): **mBERT**, **XLM-R base**.
+  - Zero-shot generative: **Qwen3.5 0.8B / 4B** (vLLM, deterministic).
+  - Frontier upper anchor: **Claude Haiku 4.5** (zero-shot, exploratory ceiling).
+- **Data:** CSQA `validation`, N = 1221. Only the 5 choices translated.
+- **Translators:** Google Cloud (primary); plus open systems NLLB (600M & 3.3B) and OPUS-MT, and a majority-vote consensus. The 3 systems agree on the exact word only **35–48%** of the time.
+- **Reproducible:** temperature 0 + fixed seed (except exploratory Haiku); every run logs a manifest; outputs cached → all metrics recompute without re-querying.
+- *Figure placeholder:* **Model capability ladder** — 5 models weak→strong, palette colors. Titled empty placeholder; team inserts.
+- *Notes:* Stress encoders are fine-tuned vs generatives zero-shot → absolute accuracies not comparable across arms; the drop is.
+
+### 7. Result 1 — accuracy drops in every cell `[CORE]`
+- Every model loses accuracy in every target language vs its en-en baseline.
+- Most robust: Haiku (0.854 → 0.812–0.833). Least: XLM-R (0.510 → 0.358 on Hebrew).
+- **Figure placeholder:** *Accuracy by condition* — source `fig1_accuracy_by_condition`. Titled empty placeholder; team inserts. Reference data (caption only, do not draw):
+
+  | Model | en-en | en-ru | en-es | en-he |
+  |---|---|---|---|---|
+  | Haiku 4.5 | 0.854 | 0.812 | 0.833 | 0.817 |
+  | Qwen3.5 4B | 0.766 | 0.697 | 0.686 | 0.691 |
+  | Qwen3.5 0.8B | 0.517 | 0.476 | 0.424 | 0.392 |
+  | XLM-R (ft) | 0.510 | 0.424 | 0.408 | 0.358 |
+  | mBERT (ft) | 0.457 | 0.389 | 0.380 | 0.344 |
+
+- *Notes:* en-en is the tallest bar for every model. Hebrew is the shortest in most groups.
+
+### 8. Result 2 — flips are frequent, significant, net *away* from gold `[CORE]`
+- Flip rate ranges **13% (Haiku) → 61% (mBERT, Hebrew)**; accuracy change significant in **every** cell (usually p<.001).
+- Across all conditions, breaks (b) ≫ fixes (c): far more right→wrong than wrong→right → this is what drives the drop, and it's the signature of wording dependence, not random churn.
+- **Figure placeholder:** *Flip rate by model × language* — source `fig3_flip_rate`. Titled empty placeholder; team inserts. Reference data (caption only, do not draw):
+
+  | Model | ru | es | he |
+  |---|---|---|---|
+  | mBERT (ft) | 0.551*** | 0.537*** | 0.608*** |
+  | XLM-R (ft) | 0.513*** | 0.495*** | 0.547*** |
+  | Qwen3.5 0.8B | 0.356** | 0.381*** | 0.455*** |
+  | Qwen3.5 4B | 0.230*** | 0.259*** | 0.276*** |
+  | Haiku 4.5 | 0.128*** | 0.131* | 0.149*** |
+
+  *(\*p<.05, \*\*p<.01, \*\*\*p<.001)*
+- *Notes:* Say "net away from gold" explicitly — recovered answers never outnumber broken ones.
+
+### 9. Headline — concept grounding scales with capability `[CORE]`
+- Clearest single pattern: **flip rate falls monotonically as en-en accuracy rises.**
+- en→Hebrew accuracy drop is only **−3.7 pts for Haiku** vs **≈−15 pts for XLM-R**.
+- Grounding isn't all-or-nothing — it **emerges with model strength**.
+- **Figure placeholder:** *Flip rate vs. en-en accuracy* — source `fig5_flip_vs_capability`. Titled empty placeholder; team inserts. Reference points (caption only, do not draw) — (en-en acc, en-he flip): mBERT (0.457, 0.608) · XLM-R (0.510, 0.547) · Qwen 0.8B (0.517, 0.455) · Qwen 4B (0.766, 0.276) · Haiku (0.854, 0.149).
+- *Notes:* This is the slide to land hard. Stronger models choose the concept; weaker ones lean on the word.
+
+### 10. Fragility vs. recovery — the honest denominators `[EXT]`
+- Plain flip rate ÷ all N understates brittleness. Condition each direction on the set it can draw from:
+  - **Fragility** = away-from-gold ÷ en-en-correct (of answers it knew, how many it loses to a pure language swap).
+  - **Recovery** = toward-gold ÷ en-en-wrong (of answers it missed, how many it regains).
+- **Fragility collapses with capability:** XLM-R en-he loses ~**half** its correct answers (50.1%); Haiku loses ~**a tenth** (10.2%).
+- **Recovery is roughly flat** (~20–34%) across the ladder.
+- Twist: for strong models recovery *rate* > fragility *rate* (Haiku en-he: 34.3% regained vs 10.2% lost), yet accuracy still drops — because correct answers vastly outnumber wrong ones (a **base-rate** effect, b≫c).
+- *Figure placeholder:* *Fragility vs. recovery* — source `fig20_conditional_rates`. Titled empty placeholder; team inserts.
+- *Notes:* The nuance slide. For a short talk, drop this.
+
+### 11. It is NOT a translation artifact `[CORE]`
+- Degradation replicates across **3 independent translators (Google, NLLB, OPUS) + consensus** that agree on the exact word only 35–48% of the time — the effect ordering is **translator-invariant**.
+- Scaling the open translator **5.5×** (NLLB 600M → 3.3B) leaves the drop essentially unchanged: XLM-R en-he 0.374 → 0.363 (still ~10 pts below English).
+- If translation *quality* drove it, stronger MT would close the gap. It doesn't → the effect is concept grounding, not MT error.
+- *Figure placeholder:* *Accuracy across translators* — source `fig7_translation_sources`. Titled empty placeholder; team inserts.
+- *Notes:* This is the key robustness defense — pre-empts the obvious objection.
+
+### 12. Extension — mixed-language answer sets `[EXT]`
+- Variant: each of the 5 options independently in ru/he/es (~⅓ each), question still English → one item forces weighing concepts across 3 scripts at once.
+- **Mixing adds no penalty beyond translating at all:** mixed ≈ mean of single-language conditions (XLM-R 0.385 vs mean 0.397; mBERT 0.372 vs mean 0.371).
+- **But success tracks the gold option's language:** mBERT 0.456 when the correct choice is Spanish vs 0.282 when Hebrew → grounding is **per-option, not language-invariant**.
+- *Figure placeholder:* *Mixed-item accuracy by gold option language* — source `fig19_mixed_by_gold_lang`. Titled empty placeholder; team inserts.
+- *Notes:* A language-invariant grounder would be indifferent to which option is in which script. It isn't.
+
+### 13. Extension — the oracle ceiling `[EXT]`
+- Each concept has 3 renderings (Google/NLLB/OPUS). How much of the drop is recoverable?
+- **Majority vote buys ~nothing:** 0.366 pooled vs 0.371 best single source (renderings are correlated → rarely outvote a shared error).
+- **Per-item oracle** (best of 3) reaches 0.509 pooled — **+13.8 pts** over single-source en-x, even above the 0.457 en-en baseline.
+- Reading: for most items the model *can* ground the gold concept under *some* phrasing → much of the drop is **phrasing-dependent and recoverable**, not missing knowledge.
+- Caveats: oracle is an **upper bound** (3 tries at a 5-way choice inflate by chance); vote captures none of it, so no *simple* combiner realizes the gain.
+- *Figure placeholder:* *Translation pooling — vote vs. oracle* — source `fig10_translation_ensemble`. Titled empty placeholder; team inserts.
+- *Notes:* The gap = headline of this analysis: knowledge present but gated by surface form.
+
+### 14. Hebrew, caught in the act `[CORE]`
+- Hebrew is both the hardest target and the most diagnostic: shortest translated choices, lowest cross-MT agreement (35%), OPUS even emits Latin-script hallucinations on 4.3% of Hebrew cells — but the **Google set we evaluate is largely clean**, so flips reflect grounding, not garbled text.
+- Three items **Haiku gets right in English but misses once choices are Hebrew** (gold → model's flip):
+  - *"What do people aim to do at work?"* — gold **complete job** (*avoda shlema*) → flips to **learn from each other**.
+  - *"He needed more information to fix it, so he consulted the what?"* — gold **manual** (*yedani*) → flips to **Google**. (*yedani* reads as "by hand / manual (adj.)", not a booklet — a faithful but concept-shifting rendering: an honest lexical trap.)
+  - *"Where would you go to have fun with a few people?"* — gold **friend's house** (*beit shel chaver*) → flips to **cinema**.
+- *Figure placeholder (optional):* *Hebrew: clean vs. broken renderings* — source `fig14_hebrew_translations`. Titled empty placeholder; team inserts. (Main content here is the text examples — figure is secondary.)
+- *Notes:* Concept unchanged, only surface form moved → genuine wording-driven flips. Great place to show real Hebrew text on screen.
+
+### 15. Conclusion `[CORE]`
+- Answer to the title: **"Partly both, and it depends on capability."**
+- Translating only the choices significantly lowers accuracy for every model and language, flips skewed away from gold → models **lean on English wording**.
+- But the effect shrinks monotonically with strength and isn't explained by MT quality → **concept grounding genuinely improves with scale.**
+- Extensions sharpen it: mixing adds no extra penalty yet success tracks the gold option's language (per-option grounding); the oracle shows much of the drop is recoverable phrasing dependence.
+- **Limitations:** validation-only split; 3 target languages; exploratory (non-deterministic) frontier anchor.
+- **Next:** x-x / x-en conditions (also translate the question) to locate *where* the English anchoring sits.
+- *Notes:* End on the one-liner + the next step. Repo link on screen.
+
+---
+
+## Data appendix (figure captions & reference — all from the paper)
+
+**Accuracy (Table 2), N=1221:** see slide 7 table.
+
+**Flip rate + significance (Table 3):** see slide 8 table.
+
+**Mixed-language (Table 4):**
+
+| Model | en-en | ru | es | he | Mixed |
+|---|---|---|---|---|---|
+| XLM-R (ft) | 0.510 | 0.424 | 0.408 | 0.358 | 0.385 |
+| mBERT (ft) | 0.457 | 0.389 | 0.380 | 0.344 | 0.372 |
+
+**Conditional rates:** fragility XLM-R en-he 50.1% → Haiku 10.2%; recovery flat ~20–34%; Haiku en-he 34.3% recovery vs 10.2% fragility.
+
+**Translator robustness:** NLLB 600M→3.3B, XLM-R en-he 0.374→0.363. Cross-MT exact-word agreement 35–48%.
+
+**Oracle:** majority vote 0.366 (pooled) ≈ best single 0.371; oracle 0.509 (pooled), +13.8 over single-source en-x, above 0.457 en-en (encoder).
+
+**Mixed by gold-option language (mBERT):** Spanish 0.456 vs Hebrew 0.282.
+
+## Glossary (one-liners if a definition box helps)
+- **Flip:** prediction letter changes when only the choice language changes.
+- **Away-from-gold / toward-gold:** right→wrong / wrong→right flip.
+- **Fragility:** away-from-gold ÷ items the model got right in English.
+- **Recovery:** toward-gold ÷ items it got wrong in English.
+- **McNemar's test:** significance test for paired before/after correctness on the same items.
+- **Oracle:** best-of-3 translations chosen per item — an upper bound, not achievable.
+
+## Citations (if a references slide is wanted)
+CommonsenseQA — Talmor et al. 2019 · X-CSQA — Lin et al. 2021 · mCSQA — Sakai et al. 2024 · XLM-R — Conneau et al. 2020 · mBERT/BERT — Devlin et al. 2019 · NLLB — NLLB Team 2024 · OPUS-MT — Tiedemann & Thottingal 2020 · Qwen3.5 — Qwen 2025 · Claude Haiku 4.5 — Anthropic.
